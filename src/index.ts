@@ -38,7 +38,7 @@ async function run(): Promise<void> {
     const geminiClient = gemini.getClient(apiKey);
     const geminiModel = gemini.getModel(model, geminiClient);
     const rawResponse = await gemini.generateResponse(geminiModel, prompt, ReviewCommentsSchema);
-    core.debug(rawResponse);
+    core.info(rawResponse);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const response: ReviewComments = JSON.parse(rawResponse);
     await createReview(token, prNodeId as string, response.summary, response.comments);
