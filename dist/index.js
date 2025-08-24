@@ -35969,9 +35969,7 @@ const getPrReviewBasePrompt = () => {
 You are a senior engineer conducting a code review.
 
 ===== PULL REQUEST INFO =====
-Title: {{ pr_title }}
-Description: {{ pr_description | default("No description provided") }}
-Branch: {{ pr_source_branch }} → {{ pr_target_branch }}
+Description: {{ pr_description }}
 
 ===== REVIEW LEVEL: {{ level }} =====
 {% if level == "LOW" %}
@@ -36002,12 +36000,12 @@ Branch: {{ pr_source_branch }} → {{ pr_target_branch }}
 {% endif %}
 
 ===== CONTEXT =====
-{{ custom_instructions | default("No specific context provided") }}
+{{ custom_instructions }}
 
 ===== PREVIOUS DISCUSSION =====
-{{ existing_comments | default("No previous comments") }}
-{{ existing_reviews | default("No previous reviews") }}
-{{ existing_review_comments | default("No inline comments") }}
+{{ existing_comments }}
+{{ existing_reviews }}
+{{ existing_review_comments }}
 
 ===== ANALYSIS PROCESS =====
 1. **READ THE PATCH**: What actually changed?
@@ -36366,12 +36364,12 @@ async function run() {
         const [existingComments, existingReviewComments, existingReviews] = await getPRInteractions(octokit, context);
         core.info('test4');
         const prompt = populatePromptTemplate(basePrompt(), {
-            custom_instructions: config.customInstructions,
+            custom_instructions: config.customInstructions || 'No specific context provided',
             files_changed: fileChanges,
-            pr_description: context.prDescription,
-            existing_reviews: existingReviews,
-            existing_comments: existingComments,
-            existing_review_comments: existingReviewComments,
+            pr_description: context.prDescription || 'No description provided',
+            existing_reviews: existingReviews || 'No previous reviews',
+            existing_comments: existingComments || 'No previous comments',
+            existing_review_comments: existingReviewComments || 'No inline comments',
             level: config.level,
         });
         core.info('test3');

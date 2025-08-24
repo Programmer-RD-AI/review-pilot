@@ -27,12 +27,12 @@ async function run(): Promise<void> {
     );
     core.info('test4');
     const prompt = populatePromptTemplate(getPrReviewBasePrompt(), {
-      custom_instructions: config.customInstructions,
+      custom_instructions: config.customInstructions || 'No specific context provided',
       files_changed: fileChanges,
-      pr_description: context.prDescription,
-      existing_reviews: existingReviews,
-      existing_comments: existingComments,
-      existing_review_comments: existingReviewComments,
+      pr_description: context.prDescription || 'No description provided',
+      existing_reviews: existingReviews || 'No previous reviews',
+      existing_comments: existingComments || 'No previous comments',
+      existing_review_comments: existingReviewComments || 'No inline comments',
       level: config.level,
     });
     core.info('test3');

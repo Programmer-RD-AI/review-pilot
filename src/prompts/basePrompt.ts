@@ -7,9 +7,7 @@ const getPrReviewBasePrompt = (): string => {
 You are a senior engineer conducting a code review.
 
 ===== PULL REQUEST INFO =====
-Title: {{ pr_title }}
-Description: {{ pr_description | default("No description provided") }}
-Branch: {{ pr_source_branch }} → {{ pr_target_branch }}
+Description: {{ pr_description }}
 
 ===== REVIEW LEVEL: {{ level }} =====
 {% if level == "LOW" %}
@@ -40,12 +38,12 @@ Branch: {{ pr_source_branch }} → {{ pr_target_branch }}
 {% endif %}
 
 ===== CONTEXT =====
-{{ custom_instructions | default("No specific context provided") }}
+{{ custom_instructions }}
 
 ===== PREVIOUS DISCUSSION =====
-{{ existing_comments | default("No previous comments") }}
-{{ existing_reviews | default("No previous reviews") }}
-{{ existing_review_comments | default("No inline comments") }}
+{{ existing_comments }}
+{{ existing_reviews }}
+{{ existing_review_comments }}
 
 ===== ANALYSIS PROCESS =====
 1. **READ THE PATCH**: What actually changed?
