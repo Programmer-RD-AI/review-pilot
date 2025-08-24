@@ -1,6 +1,8 @@
 name: Test Review Pilot Action
 on:
+on:
   pull_request:
+    branches: ["main"]
 
 permissions:
   contents: write
