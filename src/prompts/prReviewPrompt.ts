@@ -80,7 +80,7 @@ Branch: {{ pr_source_branch }} → {{ pr_target_branch }}
            apiKey: \${{ secrets.GEMINI_API_KEY }} <- Position 3 (NOT line 20!)
 +          level: 'HIGH'                <- Position 4 (NOT line 21!)
 
-To comment on "level: HIGH", use position 4, NOT 21!
+To comment on level: HIGH, use position 4, NOT 21!
 
 **WRONG**: Using file line numbers (18, 19, 20, 21)
 **RIGHT**: Using patch positions (1, 2, 3, 4)
@@ -121,10 +121,10 @@ Result: position: 4 (correct!)
 Using file line numbers: position: 21 (WRONG! Causes API error)
 
 **GOOD COMMENT:**
-"The \`userId\` parameter isn't validated before the database query. This could allow SQL injection if \`userId\` comes from user input."
+The userId parameter isn't validated before the database query. This could allow SQL injection if userId comes from user input.
 
 **BAD COMMENT:**  
-"Consider adding input validation" (too vague, doesn't explain the actual risk)
+Consider adding input validation (too vague, doesn't explain the actual risk)
 
 ===== CRITICAL REMINDERS =====
 
