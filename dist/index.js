@@ -36094,22 +36094,31 @@ const getFileChanges = async (octokitClient, context, config) => {
             deletions: file.deletions,
             changes: file.changes,
             diff: file.patch,
-            context: await getFile(file.raw_url, config),
+            context: await getFile(octokitClient, context, file.filename, parseQueryParams(file.contents_url)['ref'] ?? ''),
         };
         fileChanges.push(fileChange);
     }
     return JSON.stringify(fileChanges);
 };
-const getFile = async (rawUrl, config) => {
-    const response = await fetch(rawUrl, {
-        headers: {
-            Authorization: `Bearer ${config.token}`,
+function parseQueryParams(url) {
+    const queryString = url?.includes('?') ? url.split('?')[1] : '';
+    const searchParams = new URLSearchParams(queryString);
+    return Object.fromEntries(searchParams.entries());
+}
+const getFile = async (octokitClient, context, path, ref) => {
+    const response = await octokitClient.rest.repos.getContent({
+        owner: context.repoOwner,
+        repo: context.repo,
+        path: path,
+        ref: ref,
+        mediaType: {
+            format: 'raw',
         },
     });
-    if (!response.ok) {
-        throw new Error(`Failed to fetch raw file. HTTP ${response.status}: ${response.statusText}`);
+    if (typeof response.data === 'string') {
+        return response.data;
     }
-    return await response.text();
+    return '';
 };
 const getPRInteractions = async (octokitClient, context) => {
     const existingCommentsData = await octokitClient.rest.issues.listComments({
