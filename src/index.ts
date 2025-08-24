@@ -25,6 +25,7 @@ async function run(): Promise<void> {
       octokit,
       context,
     );
+    core.info('test4');
     const prompt = populatePromptTemplate(getPrReviewBasePrompt(), {
       custom_instructions: config.customInstructions,
       files_changed: fileChanges,
@@ -34,8 +35,11 @@ async function run(): Promise<void> {
       existing_review_comments: existingReviewComments,
       level: config.level,
     });
+    core.info('test3');
     const client = geminiClient.getClient(config.apiKey);
+    core.info('test1');
     const geminiModel = geminiClient.getModel(config.model, client);
+    core.info('test2');
     const rawResponse = await geminiClient.generateResponse(
       geminiModel,
       prompt,

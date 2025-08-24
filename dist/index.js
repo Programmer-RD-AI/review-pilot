@@ -36191,7 +36191,6 @@ var FileStatus;
 ;// CONCATENATED MODULE: ./src/data.ts
 
 
-
 /**
  * Retrieves and processes file changes from a pull request
  * @param octokitClient - Authenticated GitHub API client
@@ -36210,7 +36209,6 @@ const getFileChanges = async (octokitClient, context, config) => {
         if (file.changes > config.maxChanges) {
             continue;
         }
-        core.info(file.patch);
         const fileChange = {
             fileName: file.filename,
             status: FileStatus[file.status],
@@ -36366,6 +36364,7 @@ async function run() {
         }
         const fileChanges = await getFileChanges(octokit, context, config);
         const [existingComments, existingReviewComments, existingReviews] = await getPRInteractions(octokit, context);
+        core.info('test4');
         const prompt = populatePromptTemplate(basePrompt(), {
             custom_instructions: config.customInstructions,
             files_changed: fileChanges,
@@ -36375,8 +36374,11 @@ async function run() {
             existing_review_comments: existingReviewComments,
             level: config.level,
         });
+        core.info('test3');
         const client = geminiClient.getClient(config.apiKey);
+        core.info('test1');
         const geminiModel = geminiClient.getModel(config.model, client);
+        core.info('test2');
         const rawResponse = await geminiClient.generateResponse(geminiModel, prompt, ReviewCommentsSchema);
         core.info(rawResponse);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
