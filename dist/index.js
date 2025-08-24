@@ -36036,8 +36036,8 @@ Description: {{ pr_description }}
 
 @@ -18,3 +18,4 @@ jobs:
          with:                          <- Position 1 (NOT line 18!)
-           token: \${{ secrets.GITHUB_TOKEN }}  <- Position 2 (NOT line 19!)
-           apiKey: \${{ secrets.GEMINI_API_KEY }} <- Position 3 (NOT line 20!)
+           token: $GITHUB_TOKEN  <- Position 2 (NOT line 19!)
+           apiKey: $GEMINI_API_KEY <- Position 3 (NOT line 20!)
 +          level: 'HIGH'                <- Position 4 (NOT line 21!)
 
 To comment on level: HIGH, use position 4, NOT 21!
@@ -36071,8 +36071,8 @@ Return valid JSON only with these fields:
 Looking at patch:
 @@ -18,3 +18,4 @@ jobs:
          with:                    <- Position 1
-           token: \${{...}}       <- Position 2  
-           apiKey: \${{...}}      <- Position 3
+           token: $TOKEN       <- Position 2  
+           apiKey: $API_KEY      <- Position 3
 +          level: 'HIGH'          <- Position 4 (comment here)
 
 Result: position: 4 (correct!)
