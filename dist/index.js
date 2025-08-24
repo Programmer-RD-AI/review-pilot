@@ -36008,10 +36008,11 @@ Description: {{ pr_description }}
 {{ existing_review_comments }}
 
 ===== ANALYSIS PROCESS =====
-1. **READ THE PATCH**: What actually changed?
-2. **CHECK FULL FILE CONTEXT**: Don't comment on existing code
-3. **IDENTIFY REAL PROBLEMS**: Only flag issues in NEW/CHANGED code
-4. **VERIFY POSITION**: Make sure you can calculate the correct line number
+1. **READ EACH PATCH CAREFULLY**: Look at the actual diff lines (+ and -)
+2. **ONLY REVIEW WHAT'S IN THE PATCH**: If a line isn't shown in the patch, don't comment on it
+3. **USE FULL FILE FOR CONTEXT ONLY**: The full file helps you understand context, but NEVER comment on lines not in the patch
+4. **FLAG ISSUES IN VISIBLE CHANGES ONLY**: Only comment on problems you can see in the "+" lines of the patch
+5. **VERIFY POSITION**: Make sure your comment targets a line that actually exists in the patch
 
 ===== FOCUS ON SOURCE CODE =====
 - **Prioritize source files** (src/, lib/, components/) over built/compiled files (dist/, build/)
@@ -36019,11 +36020,20 @@ Description: {{ pr_description }}
 - **Focus on the actual implementation** in source directories
 
 ===== NEVER COMMENT ON =====
+- **Code not visible in the patch**: Even if you see issues in the full file context, don't comment unless those exact lines are in the patch
+- **Lines that aren't being changed**: Only comment on "+" (added) lines in the patch
 - Built/compiled files in dist/, build/, or similar directories (these are generated)
-- Things that already exist in the full file context
 - Theoretical problems that won't actually happen  
 - Style preferences (unless HIGH level and affects readability)
 - Missing features outside the scope of this change
+
+===== CRITICAL RULE: PATCH VISIBILITY =====
+**Before making ANY comment, ask yourself:**
+- "Can I see the exact line I want to comment on in the patch?"
+- "Is this line marked with '+' (added) in the diff?"
+- "Am I commenting on a line that actually changed, not just something I see in the full file?"
+
+**If you can't point to the specific "+" line in the patch, DON'T COMMENT ON IT.**
 
 ===== THE CODE TO REVIEW =====
 {{ files_changed }}
@@ -36096,6 +36106,12 @@ The userId parameter isn't validated before the database query. This could allow
 **BAD COMMENT:**  
 Consider adding input validation (too vague, doesn't explain the actual risk)
 
+**TERRIBLE MISTAKE - DON'T DO THIS:**
+Seeing debug statements in the full file context, then commenting on an unrelated import line in the patch just because you want to mention the debug statements. The debug statements aren't in the patch, so don't comment on them!
+
+**CORRECT APPROACH:**
+Only comment if you can see the actual problem in the "+" lines of the patch.
+
 ===== CRITICAL REMINDERS =====
 
 - ONLY comment on code you can see in the patches
@@ -36142,6 +36158,20 @@ Examples of when to stay silent:
 - Minor refactoring
 - Documentation changes
 - Clean code with no obvious issues
+
+===== FINAL CRITICAL REMINDER =====
+
+**MOST COMMON MISTAKE TO AVOID:**
+- Seeing issues in the full file context (like debug statements, missing validation, etc.)
+- Then commenting on unrelated patches that don't contain those issues
+- This creates confusing comments that don't match the code being changed
+
+**WHAT TO DO INSTEAD:**
+- Look at each patch individually
+- Only comment on issues you can literally see in the "+" lines of that specific patch
+- If you see problems elsewhere in the file but they're not in any patch, stay silent
+
+**Remember: Better to have no comments than confusing comments on the wrong lines.**
 
 Review the code now.
 `;
