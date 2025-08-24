@@ -40,6 +40,7 @@ type FileChange = {
   deletions: number;
   changes: number;
   diff: string | undefined;
+  context: string;
 };
 
 type CustomContext = {

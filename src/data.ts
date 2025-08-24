@@ -24,10 +24,25 @@ const getFileChanges = async (
       deletions: file.deletions,
       changes: file.changes,
       diff: file.patch,
+      context: await getFile(octokitClient, context, file.filename),
     };
     fileChanges.push(fileChange);
   }
   return JSON.stringify(fileChanges);
+};
+
+const getFile = async (
+  octokitClient: InstanceType<typeof GitHub>,
+  context: CustomContext,
+  path: string,
+): Promise<string> => {
+  const fileContent = await octokitClient.rest.repos.getContent({
+    owner: context.repoOwner,
+    repo: context.repo,
+    path: path,
+    mediaType: { format: 'raw' },
+  });
+  return JSON.stringify(fileContent);
 };
 
 const getPRInteractions = async (
