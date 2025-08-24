@@ -34,9 +34,12 @@ async function run(): Promise<void> {
       context.payload.pull_request.number,
     );
     const filesChangedStr: string = JSON.stringify(filesChanged);
+    core.info(filesChangedStr);
+    core.info(customInstructions ? customInstructionUri : '');
     const prompt = getPRReviewPrompt(filesChangedStr, customInstructions);
     const geminiClient = gemini.getClient(apiKey);
     const geminiModel = gemini.getModel(model, geminiClient);
+    core.info(prompt);
     const rawResponse = await gemini.generateResponse(geminiModel, prompt, ReviewCommentsSchema);
     core.info(rawResponse);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
