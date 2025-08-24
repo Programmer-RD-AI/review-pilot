@@ -36100,8 +36100,8 @@ async function run() {
         }
         const filesChanged = await getPRDiff(octokit, context.repo.owner, context.repo.repo, pr.number);
         const filesChangedStr = JSON.stringify(filesChanged);
-        core.info(filesChangedStr);
-        core.info(customInstructions ? customInstructionUri : '');
+        core.info(JSON.stringify(existingComments));
+        core.info(JSON.stringify(existingReviewComments));
         const prompt = populatePromptTemplate(prReviewPrompt(), {
             custom_instructions: customInstructions,
             files_changed: filesChangedStr,
@@ -36111,7 +36111,6 @@ async function run() {
         });
         const geminiClient = gemini.getClient(apiKey);
         const geminiModel = gemini.getModel(model, geminiClient);
-        core.info(prompt);
         const rawResponse = await gemini.generateResponse(geminiModel, prompt, ReviewCommentsSchema);
         core.info(rawResponse);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

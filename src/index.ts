@@ -63,8 +63,8 @@ async function run(): Promise<void> {
       pr.number,
     );
     const filesChangedStr: string = JSON.stringify(filesChanged);
-    core.info(filesChangedStr);
-    core.info(customInstructions ? customInstructionUri : '');
+    core.info(JSON.stringify(existingComments));
+    core.info(JSON.stringify(existingReviewComments));
     const prompt = populatePromptTemplate(getPrReviewBasePrompt(), {
       custom_instructions: customInstructions,
       files_changed: filesChangedStr,
@@ -74,7 +74,6 @@ async function run(): Promise<void> {
     });
     const geminiClient = gemini.getClient(apiKey);
     const geminiModel = gemini.getModel(model, geminiClient);
-    core.info(prompt);
     const rawResponse = await gemini.generateResponse(geminiModel, prompt, ReviewCommentsSchema);
     core.info(rawResponse);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
