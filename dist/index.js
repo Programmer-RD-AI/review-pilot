@@ -36033,7 +36033,7 @@ async function run() {
         const geminiClient = gemini.getClient(apiKey);
         const geminiModel = gemini.getModel(model, geminiClient);
         const rawResponse = await gemini.generateResponse(geminiModel, prompt, ReviewCommentsSchema);
-        core.debug(rawResponse);
+        core.info(rawResponse);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const response = JSON.parse(rawResponse);
         await graphql(token, prNodeId, response.summary, response.comments);
