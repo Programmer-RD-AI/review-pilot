@@ -3,7 +3,6 @@ import {
   GoogleGenerativeAI,
   type GenerateContentRequest,
 } from '@google/generative-ai';
-import { ReviewCommentsSchema } from '../schemas/gemini.js';
 
 const getClient = (apiKey: string): GoogleGenerativeAI => {
   return new GoogleGenerativeAI(apiKey);
@@ -12,18 +11,24 @@ const getClient = (apiKey: string): GoogleGenerativeAI => {
 const getModel = (modelName: string, geminiClient: GoogleGenerativeAI): GenerativeModel => {
   return geminiClient.getGenerativeModel({ model: modelName });
 };
-const generateResponse = async (model: GenerativeModel): Promise<string> => {
-  const generativeContent: GenerateContentRequest = getGenerativeContentRequest();
+const generateResponse = async (
+  model: GenerativeModel,
+  prompt: string,
+  schema: Record<string, any>,
+): Promise<string> => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const generativeContent: GenerateContentRequest = getGenerativeContentRequest(prompt, schema);
   const result = await model.generateContent(generativeContent);
   return result.response.text();
 };
 
-const getGenerativeContentRequest = (): any => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const getGenerativeContentRequest = (prompt: string, schema: Record<string, any>): any => {
   return {
-    contents: [{ role: 'user', parts: [{ text: 'Give me a code review summary' }] }],
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
     generationConfig: {
       responseMimeType: 'application/json',
-      responseSchema: ReviewCommentsSchema,
+      responseSchema: schema,
     },
   };
 };

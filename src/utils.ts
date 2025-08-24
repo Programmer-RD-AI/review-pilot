@@ -3,6 +3,7 @@ import type { Context } from '@actions/github/lib/context.js';
 import type { GitHub } from '@actions/github/lib/utils.js';
 import type { FileChange } from './types.js';
 import { FileStatus } from './types.js';
+
 const getPRDiff = async (
   octokitClient: InstanceType<typeof GitHub>,
   repoOwner: string,
@@ -14,7 +15,7 @@ const getPRDiff = async (
     pull_number: pullNumber,
     owner: repoOwner,
   });
-  const fileChanges: Array<FileChange> = Array();
+  const fileChanges: FileChange[] = Array<FileChange>();
   for (const file of files.data) {
     const fileChange: FileChange = {
       fileName: file.filename,
@@ -44,4 +45,5 @@ const getGithubContext = (): Context => {
   const { context } = github;
   return context;
 };
+
 export { getPRDiff, getGithubContext, fetchFile };
