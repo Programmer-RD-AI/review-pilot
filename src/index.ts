@@ -43,13 +43,18 @@ async function run(): Promise<void> {
     );
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const response: ReviewComments = JSON.parse(rawResponse);
-    await createReview(
-      config.token,
-      context.prNodeId,
-      response.summary,
-      response.event,
-      response.comments,
-    );
+    // Only create review if there are actual comments
+    if (response.comments.length > 0) {
+      await createReview(
+        config.token,
+        context.prNodeId,
+        response.summary,
+        response.event,
+        response.comments,
+      );
+    } else {
+      core.info('No actionable feedback needed - skipping review creation');
+    }
   } catch (error: unknown) {
     core.setFailed((error as { message: string }).message);
   }
