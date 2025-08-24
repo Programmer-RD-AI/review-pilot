@@ -10,5 +10,5 @@ jobs:
       - name: Run Review Pilot
         uses: ./
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           apiKey: ${{secrets.GEMINI_API_KEY}}
