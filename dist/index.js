@@ -36140,7 +36140,6 @@ var FileStatus;
 ;// CONCATENATED MODULE: ./src/data.ts
 
 
-
 /**
  * Retrieves and processes file changes from a pull request
  * @param octokitClient - Authenticated GitHub API client
@@ -36168,7 +36167,6 @@ const getFileChanges = async (octokitClient, context, config) => {
             diff: file.patch,
             context: await getFile(octokitClient, context, file.filename, parseQueryParams(file.contents_url)['ref'] ?? ''),
         };
-        core.info(fileChange.context);
         fileChanges.push(fileChange);
     }
     return JSON.stringify(fileChanges);
@@ -36310,9 +36308,6 @@ async function run() {
         }
         const fileChanges = await getFileChanges(octokit, context, config);
         const [existingComments, existingReviewComments, existingReviews] = await getPRInteractions(octokit, context);
-        core.info(existingComments ?? '');
-        core.info(existingReviewComments ?? '');
-        core.info(existingReviews ?? '');
         const prompt = populatePromptTemplate(prReviewPrompt(), {
             custom_instructions: config.customInstructions,
             files_changed: fileChanges,

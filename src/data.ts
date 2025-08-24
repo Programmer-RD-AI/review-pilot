@@ -1,4 +1,3 @@
-import * as core from '@actions/core';
 import type { GitHub } from '@actions/github/lib/utils.js';
 import type { Config, CustomContext, FileChange } from './types.js';
 import { FileStatus } from './types.js';
@@ -40,7 +39,6 @@ const getFileChanges = async (
         parseQueryParams(file.contents_url)['ref'] ?? '',
       ),
     };
-    core.info(fileChange.context);
     fileChanges.push(fileChange);
   }
   return JSON.stringify(fileChanges);
