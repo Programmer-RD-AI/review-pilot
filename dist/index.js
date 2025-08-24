@@ -36013,27 +36013,33 @@ Description: {{ pr_description }}
 3. **IDENTIFY REAL PROBLEMS**: Only flag issues in NEW/CHANGED code
 4. **VERIFY POSITION**: Make sure you can calculate the correct line number
 
+===== FOCUS ON SOURCE CODE =====
+- **Prioritize source files** (src/, lib/, components/) over built/compiled files (dist/, build/)
+- **Review meaningful code changes** rather than generated or compiled outputs
+- **Focus on the actual implementation** in source directories
+
 ===== NEVER COMMENT ON =====
+- Built/compiled files in dist/, build/, or similar directories (these are generated)
 - Things that already exist in the full file context
-- Theoretical problems that won't actually happen
+- Theoretical problems that won't actually happen  
 - Style preferences (unless HIGH level and affects readability)
 - Missing features outside the scope of this change
 
 ===== THE CODE TO REVIEW =====
 {{ files_changed }}
 
-===== POSITION CALCULATION - READ THIS CAREFULLY =====
+===== POSITION CALCULATION GUIDE =====
 
-**STOP! READ THIS SECTION THREE TIMES BEFORE CALCULATING ANY POSITION!**
+**Important**: Please read this section carefully before calculating any position numbers.
 
-**CRITICAL ERROR PREVENTION**: Position is NEVER EVER the file line number! Position is ONLY the line number within the DIFF PATCH!
+**Key Point**: Position refers to the line number within the diff patch, not the file line number.
 
-**ABSOLUTE MANDATORY RULES - FAILURE MEANS API ERROR**:
-1. **COMPLETELY IGNORE FILE LINE NUMBERS - THEY ARE WRONG**
-2. **Position = line number in the DIFF PATCH starting from 1 AFTER the @@ header**
-3. **Count EVERY line in the patch: context (space), removed (-), and added (+)**
-4. **If position > 10, YOU ARE DOING IT WRONG - STOP AND RECOUNT**
-5. **Use patch for position, full file ONLY for understanding context**
+**Essential Rules**:
+1. **Ignore file line numbers** - they don't match patch positions
+2. **Position = line number in the diff patch starting from 1 AFTER the @@ header**
+3. **Count every line in the patch**: context lines (space), removed lines (-), and added lines (+)
+4. **Tip**: If your position is > 10, double-check your counting - most patches are smaller
+5. **Use the patch for position calculation, use full file context for understanding the code**
 
 **Example from the actual error:**
 
@@ -36061,13 +36067,13 @@ Return valid JSON only with these fields:
 - "event": Either "REQUEST_CHANGES" or "COMMENT"  
 - "comments": Array of comment objects with "body", "path", and "position" fields
 
-**POSITION VALIDATION - MANDATORY BEFORE ANY COMMENT**:
-1. **VERIFY**: Position is counting lines in DIFF PATCH, not file
-2. **VERIFY**: You started counting from 1 AFTER the @@ header line
-3. **VERIFY**: You're commenting on a "+" line (new code) with real problems
-4. **VERIFY**: Position is small (1-10), NOT large file line numbers (20+)
-5. **VERIFY**: If you calculated position > 10, YOU MADE AN ERROR - RECOUNT OR SKIP
-6. **EMERGENCY STOP**: If ANY doubt about position, return empty comments array
+**Position Validation Checklist**:
+1. ✓ Position counts lines in the diff patch, not the file
+2. ✓ Counting started from 1 after the @@ header line
+3. ✓ Commenting on a "+" (added) line with actual issues
+4. ✓ Position is reasonable (usually 1-10), not a large file line number
+5. ✓ If position seems high (>10), please recount carefully
+6. ✓ When in doubt about position accuracy, it's better to skip the comment
 
 ===== EXAMPLES =====
 
@@ -36099,21 +36105,18 @@ Consider adding input validation (too vague, doesn't explain the actual risk)
 - If you can't calculate the correct position, don't comment
 - If the code looks fine, return empty comments array
 
-===== EMERGENCY POSITION SAFETY - FINAL CHECK =====
+===== FINAL REVIEW CHECKLIST =====
 
-**BEFORE COMMENTING, ANSWER THESE QUESTIONS:**
-1. Can I see the exact diff patch with @@ headers?
-2. Did I count line by line from 1 AFTER the @@ header (NOT including the header)?
-3. Is my position number small (1-10) and NOT a file line number?
-4. Am I commenting on a "+" (added) line with an actual bug/issue?
-5. Would this position cause "Pull request review thread position is invalid" error?
+**Before submitting any comments, please confirm**:
+1. Can you clearly see the diff patch with @@ headers?
+2. Did you count line by line from 1 after the @@ header (excluding the header itself)?
+3. Is your position number reasonable (typically 1-10) and not a file line number?
+4. Are you commenting on a "+" (added) line with a genuine issue?
+5. Does this position seem likely to work with the GitHub API?
 
-**IF ANY ANSWER IS NO OR UNSURE: RETURN EMPTY COMMENTS ARRAY IMMEDIATELY!**
+**If you're unsure about any of these points, it's better to return an empty comments array.**
 
-**WHEN IN DOUBT: STAY COMPLETELY SILENT**
-Better to provide no comments than crash the API with invalid positions.
-
-**REMEMBER**: Position 21 = WRONG! Position 4 = Probably correct!
+**Pro tip**: Small position numbers (like 4) are usually correct, while large numbers (like 21) often indicate you're using file line numbers instead of patch positions.
 
 ===== DEFAULT BEHAVIOR =====
 For simple changes like:
