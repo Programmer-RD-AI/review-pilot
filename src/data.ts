@@ -40,9 +40,11 @@ const getFile = async (
     owner: context.repoOwner,
     repo: context.repo,
     path: path,
-    mediaType: { format: 'raw' },
+    mediaType: {
+      format: 'raw',
+    },
   });
-  return JSON.stringify(fileContent);
+  return fileContent.data as unknown as string;
 };
 
 const getPRInteractions = async (

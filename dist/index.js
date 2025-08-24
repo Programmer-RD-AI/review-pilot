@@ -36103,9 +36103,11 @@ const getFile = async (octokitClient, context, path) => {
         owner: context.repoOwner,
         repo: context.repo,
         path: path,
-        mediaType: { format: 'raw' },
+        mediaType: {
+            format: 'raw',
+        },
     });
-    return JSON.stringify(fileContent);
+    return fileContent.data;
 };
 const getPRInteractions = async (octokitClient, context) => {
     const existingCommentsData = await octokitClient.rest.issues.listComments({
