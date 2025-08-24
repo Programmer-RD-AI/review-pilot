@@ -1,0 +1,28 @@
+name: 'ReviewPilot Action'
+description: 'A lightweight, AI-powered PR reviewer, think Copilot’s insights, but leaner and sharper.'
+author: 'Programmer-RD-AI'
+inputs:
+  token:
+    description: 'GitHub token (use secrets.GITHUB_TOKEN)'
+    required: true
+  model:
+    description: 'The AI model to use for reviewing pull requests.'
+    required: false
+    default: 'gemini-2.5-flash-lite'
+  apiKey:
+    description: 'API key used to authenticate requests to the Gemini API. Required for secure communication and must be kept confidential. Without a valid key, requests will be rejected.'
+    required: true
+  customInstructionUri:
+    description: 'Optional custom instructions to fine-tune the review process. You can provide a string or the path to a .txt file containing specific guidelines or requirements. If a .txt file is provided, its contents will be used to guide the AI reviewer.'
+    required: false
+  level:
+    description: 'The strictness level of the review. LOW for critical issues, MID for balanced feedback, HIGH for nit-picking.'
+    required: false
+    default: 'MID'
+  maxChanges:
+    description: 'The maximum number of changes in a file to be considered for review.'
+    required: false
+    default: '1000'
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
