@@ -41,6 +41,7 @@ async function run(): Promise<void> {
       prompt,
       ReviewCommentsSchema,
     );
+    core.info(rawResponse);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const response: ReviewComments = JSON.parse(rawResponse);
     // Only create review if there are actual comments

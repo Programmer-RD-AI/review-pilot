@@ -36364,6 +36364,7 @@ async function run() {
         const client = geminiClient.getClient(config.apiKey);
         const geminiModel = geminiClient.getModel(config.model, client);
         const rawResponse = await geminiClient.generateResponse(geminiModel, prompt, ReviewCommentsSchema);
+        core.info(rawResponse);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const response = JSON.parse(rawResponse);
         // Only create review if there are actual comments
