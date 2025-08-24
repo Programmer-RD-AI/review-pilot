@@ -17,7 +17,6 @@ declare const ReviewCommentsSchema: {
             description: string;
             items: {
                 type: SchemaType;
-                description: string;
                 properties: {
                     body: {
                         type: SchemaType;

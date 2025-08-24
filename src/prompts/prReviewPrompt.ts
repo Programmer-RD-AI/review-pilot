@@ -67,19 +67,10 @@ For EVERY file you review, follow this exact process:
 
 ===== OUTPUT FORMAT =====
 
-Return JSON with exactly these fields:
-
-{
-  "summary": "Brief assessment of the changes in 1-2 sentences. Be direct and honest.",
-  "event": "REQUEST_CHANGES" or "COMMENT", 
-  "comments": [
-    {
-      "body": "Clear explanation of the specific problem and why it matters",
-      "path": "file/path/from/diff", 
-      "position": line_number_in_patch
-    }
-  ]
-}
+Return valid JSON only with these fields:
+- "summary": Brief assessment of the changes in 1-2 sentences
+- "event": Either "REQUEST_CHANGES" or "COMMENT"  
+- "comments": Array of comment objects with "body", "path", and "position" fields
 
 ===== EXAMPLES =====
 
