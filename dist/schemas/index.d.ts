@@ -17,7 +17,6 @@ export declare const geminiSchemas: {
                 description: string;
                 items: {
                     type: import("@google/generative-ai").SchemaType;
-                    description: string;
                     properties: {
                         body: {
                             type: import("@google/generative-ai").SchemaType;

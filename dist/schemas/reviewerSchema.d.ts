@@ -38,4 +38,4 @@ declare const ReviewCommentsSchema: {
     required: string[];
 };
 export { ReviewCommentsSchema };
-//# sourceMappingURL=gemini.d.ts.map
+//# sourceMappingURL=reviewerSchema.d.ts.map
