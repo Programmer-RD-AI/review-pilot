@@ -26,20 +26,6 @@ export declare const gemini: {
                             type: import("@google/generative-ai").SchemaType;
                             description: string;
                         };
-                        side: {
-                            type: import("@google/generative-ai").SchemaType;
-                            description: string;
-                        };
-                        start_line: {
-                            type: import("@google/generative-ai").SchemaType;
-                            description: string;
-                            nullable: boolean;
-                        };
-                        start_side: {
-                            type: import("@google/generative-ai").SchemaType;
-                            description: string;
-                            nullable: boolean;
-                        };
                     };
                     required: string[];
                 };

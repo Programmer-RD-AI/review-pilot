@@ -26,20 +26,6 @@ declare const ReviewCommentsSchema: {
                         type: SchemaType;
                         description: string;
                     };
-                    side: {
-                        type: SchemaType;
-                        description: string;
-                    };
-                    start_line: {
-                        type: SchemaType;
-                        description: string;
-                        nullable: boolean;
-                    };
-                    start_side: {
-                        type: SchemaType;
-                        description: string;
-                        nullable: boolean;
-                    };
                 };
                 required: string[];
             };

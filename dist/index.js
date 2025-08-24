@@ -34327,17 +34327,13 @@ You MUST respond with a structured JSON object containing exactly these fields:
 2. "reviewComments": Array of detailed review items. Each comment object must contain:
    - "body": Your detailed technical feedback, suggestions, or concerns for this specific issue
    - "path": The exact file path where the issue exists (example: "src/utils/auth.ts")
-   - "line": The specific line number in the NEW version of the file (RIGHT side of diff) where the issue occurs
-   - "side": ALWAYS use "RIGHT" for commenting on new code being added or modified
-   - "start_line": (Optional) If commenting on multiple consecutive lines, specify the starting line number
-   - "start_side": (Optional) If commenting on multiple lines, use "RIGHT"
+   - "line": The line number in the file where the comment applies.
 
 CRITICAL DIFF INTERPRETATION RULES:
 - Lines prefixed with "+" are NEW code (RIGHT side) - these are your primary targets for comments
 - Lines prefixed with "-" are DELETED code (LEFT side) - rarely comment directly on these
-- Diff headers show line ranges as: @@-old_start,old_count +new_start,new_count@@
-- When referencing any line in your comments, always use the line number from the NEW file (after changes are applied)
-- The "line" field should correspond to where the issue exists in the final state of the file
+- Diff headers show line ranges and look like this: \`@@ -old_start,old_count +new_start,new_count @@\`
+- The "line" field is the line number in the file. The position should be calculated relative to the start of the diff hunk.
 
 COMPREHENSIVE REVIEW CRITERIA:
 
@@ -35966,24 +35962,10 @@ const ReviewCommentsSchema = {
                     },
                     line: {
                         type: SchemaType.NUMBER,
-                        description: 'Line number in the diff where the comment applies',
-                    },
-                    side: {
-                        type: SchemaType.STRING,
-                        description: 'Side of the diff (e.g., LEFT, RIGHT)',
-                    },
-                    start_line: {
-                        type: SchemaType.NUMBER,
-                        description: 'Optional starting line number for multi-line changes',
-                        nullable: true,
-                    },
-                    start_side: {
-                        type: SchemaType.STRING,
-                        description: 'Optional starting side for multi-line changes',
-                        nullable: true,
+                        description: 'Line number in the file where the comment applies',
                     },
                 },
-                required: ['body', 'path', 'line', 'side'],
+                required: ['body', 'path', 'line'],
             },
         },
     },
@@ -36025,33 +36007,20 @@ async function run() {
         const geminiClient = gemini.getClient(apiKey);
         const geminiModel = gemini.getModel(model, geminiClient);
         const rawResponse = await gemini.generateResponse(geminiModel, prompt, ReviewCommentsSchema);
+        core.debug(rawResponse);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const response = JSON.parse(rawResponse);
-        for (const reviewComment of response.reviewComments) {
-            // Build the params object, only including optional properties if defined
-            const params = {
-                owner: repo.owner,
-                repo: repo.repo,
-                pull_number: prNumber,
-                commit_id: commitId,
-                path: reviewComment.path,
-                line: reviewComment.line,
-                side: reviewComment.side,
-                body: reviewComment.body,
-            };
-            if (typeof reviewComment.start_line === 'number') {
-                params['start_line'] = reviewComment.start_line;
-            }
-            if (typeof reviewComment.start_side === 'string') {
-                params['start_side'] = reviewComment.start_side;
-            }
-            await octokit.rest.pulls.createReviewComment(params);
-        }
-        await octokit.rest.issues.createComment({
+        await octokit.rest.pulls.createReview({
             owner: repo.owner,
             repo: repo.repo,
-            issue_number: prNumber,
+            pull_number: prNumber,
+            commit_id: commitId,
             body: response.summary,
+            event: 'COMMENT',
+            comments: response.reviewComments.map((comment) => ({
+                ...comment,
+                position: comment.line,
+            })),
         });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }

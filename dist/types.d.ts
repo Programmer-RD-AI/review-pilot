@@ -1,11 +1,7 @@
-type ReviewCommentSide = 'RIGHT' | 'LEFT';
 type ReviewComment = {
     body: string;
     path: string;
     line: number;
-    side: ReviewCommentSide;
-    start_line?: number | undefined;
-    start_side?: ReviewCommentSide | undefined;
 };
 type ReviewComments = {
     reviewComments: Array<ReviewComment>;
@@ -28,5 +24,5 @@ type FileChange = {
     changes: number;
     diff: string | undefined;
 };
-export type { ReviewComments, ReviewComment, FileChange, ReviewCommentSide };
+export type { ReviewComments, ReviewComment, FileChange };
 export { FileStatus };
