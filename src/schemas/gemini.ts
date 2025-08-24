@@ -2,13 +2,13 @@ import { SchemaType } from '@google/generative-ai';
 
 const ReviewCommentsSchema = {
   description:
-    'Code review output from an expert engineer analyzing Git diff patches. Comments focus only on issues visible in the provided patches.',
+    'Code review output from an expert engineer who carefully analyzes both Git diff patches AND full file context to avoid commenting on existing code. Use chain-of-thought reasoning to verify issues before commenting.',
   type: SchemaType.OBJECT,
   properties: {
     summary: {
       type: SchemaType.STRING,
       description:
-        'Human-like assessment of the code changes based on what is visible in the patches. Use language like "Solid changes, no red flags in what I can see" or describe specific concerns found in the diff patches.',
+        'Human-like assessment acknowledging both what you can verify and context limitations. Example: "Solid changes to the auth flow - no issues in what I can see, though the validation logic might be elsewhere in the codebase." Be honest about what you cannot see rather than making assumptions.',
     },
     event: {
       type: SchemaType.STRING,

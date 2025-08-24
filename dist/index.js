@@ -34286,9 +34286,21 @@ const SUPPORTED_CUSTOM_INSTRUCTIONS_FILE_TYPES = [
 
 
 
+/**
+ * Populates a Jinja2 template string with provided context variables
+ * @param prompt - The template string containing Jinja2 placeholders
+ * @param context - Key-value pairs to substitute in the template
+ * @returns The rendered template string with variables replaced
+ */
 const populatePromptTemplate = (prompt, context) => {
     return new Template(prompt).render(context).trim();
 };
+/**
+ * Fetches text content from a remote URL
+ * @param url - The URL to fetch content from
+ * @returns Promise resolving to the text content of the response
+ * @throws Error if the HTTP request fails
+ */
 const fetchFile = async (url) => {
     const response = await fetch(url);
     if (!response.ok) {
@@ -34297,6 +34309,11 @@ const fetchFile = async (url) => {
     const text = await response.text();
     return text;
 };
+/**
+ * Extracts GitHub context information from the current pull request event
+ * @returns CustomContext object containing PR details
+ * @throws Error if not running in a pull request context
+ */
 const getGithubContext = () => {
     const { context } = github;
     const pr = context.payload.pull_request;
@@ -34311,9 +34328,19 @@ const getGithubContext = () => {
         prNumber: pr.number,
     };
 };
+/**
+ * Checks if a filename has an allowed file extension for custom instructions
+ * @param filename - The filename to check
+ * @returns True if the file type is supported, false otherwise
+ */
 function isAllowedFileType(filename) {
     return SUPPORTED_CUSTOM_INSTRUCTIONS_FILE_TYPES.some((ext) => filename.toLowerCase().endsWith(ext));
 }
+/**
+ * Parses query parameters from a URL string
+ * @param url - The URL string to parse (optional)
+ * @returns Object containing key-value pairs of query parameters
+ */
 function parseQueryParams(url) {
     const queryString = url?.includes('?') ? url.split('?')[1] : '';
     const searchParams = new URLSearchParams(queryString);
@@ -35846,12 +35873,12 @@ class GoogleGenerativeAI {
 ;// CONCATENATED MODULE: ./src/schemas/gemini.ts
 
 const ReviewCommentsSchema = {
-    description: 'Code review output from an expert engineer analyzing Git diff patches. Comments focus only on issues visible in the provided patches.',
+    description: 'Code review output from an expert engineer who carefully analyzes both Git diff patches AND full file context to avoid commenting on existing code. Use chain-of-thought reasoning to verify issues before commenting.',
     type: SchemaType.OBJECT,
     properties: {
         summary: {
             type: SchemaType.STRING,
-            description: 'Human-like assessment of the code changes based on what is visible in the patches. Use language like "Solid changes, no red flags in what I can see" or describe specific concerns found in the diff patches.',
+            description: 'Human-like assessment acknowledging both what you can verify and context limitations. Example: "Solid changes to the auth flow - no issues in what I can see, though the validation logic might be elsewhere in the codebase." Be honest about what you cannot see rather than making assumptions.',
         },
         event: {
             type: SchemaType.STRING,
@@ -35889,6 +35916,10 @@ const ReviewCommentsSchema = {
 // EXTERNAL MODULE: ./node_modules/@octokit/graphql/dist-node/index.js
 var dist_node = __nccwpck_require__(7);
 ;// CONCATENATED MODULE: ./src/api/queries.ts
+/**
+ * Returns the GraphQL mutation query for adding a pull request review
+ * @returns GraphQL mutation string for creating PR reviews
+ */
 const addPullRequestReviewQuery = () => {
     return `
       mutation AddReview($input: AddPullRequestReviewInput!) {
@@ -35905,6 +35936,15 @@ const addPullRequestReviewQuery = () => {
 ;// CONCATENATED MODULE: ./src/api/prReview.ts
 
 
+/**
+ * Creates a new pull request review using GitHub GraphQL API
+ * @param token - GitHub authentication token
+ * @param prNodeId - GitHub GraphQL node ID of the pull request
+ * @param summary - Review summary text
+ * @param event - Type of review event (COMMENT or REQUEST_CHANGES)
+ * @param comments - Array of review comments to add
+ * @returns Promise that resolves when review is created
+ */
 const createReview = async (token, prNodeId, summary, event, comments) => {
     await (0,dist_node.graphql)(addPullRequestReviewQuery(), {
         input: {
@@ -35921,11 +35961,22 @@ const createReview = async (token, prNodeId, summary, event, comments) => {
 /* harmony default export */ const prReview = (createReview);
 
 ;// CONCATENATED MODULE: ./src/prompts/prReviewPrompt.ts
+/**
+ * Returns the base system prompt template for pull request reviews
+ * @returns Jinja2 template string containing the complete review instructions
+ */
 const getPrReviewBasePrompt = () => {
     return `
-You are a legendary 10x engineer who's been coding since the late 90s. You've shipped code that's handled Black Friday traffic, debugged race conditions at 4 AM with the entire site down, and caught bugs that would've lost millions. Your code reviews are respected across the industry because when you speak up, it's always for a damn good reason. You've seen every footgun, every antipattern, and every way code can spectacularly fail in production.
+You are a legendary 10x engineer who's been coding since the late 90s. You've shipped code that's handled Black Friday traffic, debugged race conditions at 4 AM with the entire site down, and caught bugs that would've lost millions. Your code reviews are respected across the industry because when you speak up, it's always for a damn good reason.
 
-You don't comment on everything - that's what junior reviewers do. You laser-focus on the stuff that will actually bite the team in the ass later. Your comments are legendary because they're surgical, insightful, and always backed by war stories from the trenches.
+CRITICAL: You have access to BOTH the Git diff patches AND the complete file context. Use chain-of-thought reasoning before making any comment:
+
+STEP 1: Analyze what changed in the patches
+STEP 2: Check the full file context to see what already exists  
+STEP 3: Only comment if there's an actual problem in the NEW/CHANGED code
+STEP 4: If you can't see enough context to verify a problem, mention the limitation rather than assume
+
+You don't comment on everything - that's what junior reviewers do. You laser-focus on actual problems in the changes, not things that already exist in the codebase.
 
 MISSION: Review this code like your production environment depends on it (because it does). Only flag real problems that will cause pain. Skip the bikeshedding and focus on what matters.
 
@@ -35974,10 +36025,12 @@ The data you receive contains Git diff patches for each modified file. Here's wh
 
 5. FOCUS ON PATCH CONTENT: Your comments must reference actual lines visible in the patches. Don't speculate about code you can't see.
 
+6. CRITICAL: You have access to both the PATCH (what changed) and the FULL FILE CONTEXT. Before commenting that something is "missing", CHECK THE FULL FILE CONTEXT to see if it already exists. Only comment on actual problems in the NEW/CHANGED code, not things that already exist in the file.
+
 OUTPUT FORMAT:
 Return JSON with these fields:
 
-1. "summary": Talk like a human. Give me the real talk on these changes in 1-2 sentences based on what you can see in the patches.
+1. "summary": Talk like a human. Give me the real talk on these changes in 1-2 sentences. Mention both what you can verify from the patches/context AND acknowledge any limitations in what you can see. Example: "Solid refactoring of the payment flow, but I can only see the modified functions - the validation logic might be handled elsewhere I can't see."
 
 2. "event": 
    - "REQUEST_CHANGES" = Critical issues visible in the patches that will cause problems
@@ -36013,16 +36066,17 @@ COMMENT APPROACH FOR PATCHES:
 3. Be explicit when you're making assumptions due to limited context
 4. Don't provide \`\`\`suggestion blocks unless you're confident about the complete fix
 5. Sometimes the best comment is explaining why something looks risky
+6. NEVER comment that something is "missing" or "incomplete" without first checking the full file context - you have access to both the patch AND the complete file content
 
-EXAMPLES OF PATCH-AWARE COMMENTS:
+CHAIN-OF-THOUGHT REASONING EXAMPLES:
 
-"I can see this query is being executed in what looks like a loop (based on the surrounding context). This could be an N+1 performance issue, but I'd need to see more of the calling code to be certain."
+GOOD: "Looking at the patch, I see a new database query being added in a loop. Checking the full file context, I don't see any batching or caching mechanism. This new code will create an N+1 query problem under load."
 
-"This error is being caught but not handled - when this API call fails, the user won't know what happened and the system state could be inconsistent."
+GOOD: "The patch adds error handling, but I can see it's just logging and continuing. Based on the full file context, this function is called during payment processing, so silent failures could lead to inconsistent transaction states."
 
-"The input validation I can see here doesn't check for null/undefined. If this comes from user input, it could cause runtime errors."
-
-"This looks like it's modifying shared state without synchronization. In a concurrent environment, this could lead to race conditions."
+BAD: "Missing error handling" (without checking if error handling exists elsewhere in the file)
+BAD: "Enum is incomplete" (without verifying what values already exist in the full file)  
+BAD: "Missing trigger event" (without checking if the trigger exists in the complete file)
 
 REALITY CHECK FOR PATCH REVIEW:
 - Focus on issues you can definitively identify from the visible changes
@@ -36039,13 +36093,19 @@ Remember: You're working with limited visibility, but your job is still to catch
 
 
 
+/**
+ * Retrieves and validates configuration from GitHub Actions inputs
+ * @returns Promise resolving to a complete Config object
+ */
 const getConfig = async () => {
     const token = core.getInput('token', { required: true });
     const customInstructionsUri = core.getInput('customInstructionUri');
     let customInstructions;
     if (customInstructionsUri) {
-        if (isAllowedFileType(customInstructionsUri)) {
+        if (!isAllowedFileType(customInstructionsUri)) {
             core.warning(`File "${customInstructionsUri}" is not in the allowed list. Allowed extensions are: ${SUPPORTED_CUSTOM_INSTRUCTIONS_FILE_TYPES.join(', ')}`);
+        }
+        else {
             customInstructions = await fetchFile(customInstructionsUri);
         }
     }
@@ -36081,6 +36141,13 @@ var FileStatus;
 
 
 
+/**
+ * Retrieves and processes file changes from a pull request
+ * @param octokitClient - Authenticated GitHub API client
+ * @param context - GitHub context information for the PR
+ * @param config - Configuration object containing review settings
+ * @returns Promise resolving to JSON string of file changes
+ */
 const getFileChanges = async (octokitClient, context, config) => {
     const files = await octokitClient.rest.pulls.listFiles({
         repo: context.repo,
@@ -36106,6 +36173,14 @@ const getFileChanges = async (octokitClient, context, config) => {
     }
     return JSON.stringify(fileChanges);
 };
+/**
+ * Fetches the content of a specific file from a GitHub repository
+ * @param octokitClient - Authenticated GitHub API client
+ * @param context - GitHub context information
+ * @param path - File path relative to repository root
+ * @param ref - Git reference (branch/commit) to fetch from
+ * @returns Promise resolving to file content as string
+ */
 const getFile = async (octokitClient, context, path, ref) => {
     const response = await octokitClient.rest.repos.getContent({
         owner: context.repoOwner,
@@ -36121,6 +36196,12 @@ const getFile = async (octokitClient, context, path, ref) => {
     }
     return '';
 };
+/**
+ * Retrieves all existing PR interactions (comments, review comments, and reviews)
+ * @param octokitClient - Authenticated GitHub API client
+ * @param context - GitHub context information for the PR
+ * @returns Promise resolving to array of JSON strings containing PR interactions
+ */
 const getPRInteractions = async (octokitClient, context) => {
     const existingCommentsData = await octokitClient.rest.issues.listComments({
         owner: context.repoOwner,
@@ -36147,12 +36228,30 @@ const getPRInteractions = async (octokitClient, context) => {
 
 ;// CONCATENATED MODULE: ./src/clients/gemini.ts
 
+/**
+ * Creates a new Google Generative AI client instance
+ * @param apiKey - Google Gemini API key
+ * @returns Configured GoogleGenerativeAI client
+ */
 const getClient = (apiKey) => {
     return new GoogleGenerativeAI(apiKey);
 };
+/**
+ * Gets a specific generative model from the Gemini client
+ * @param modelName - Name of the model to use (e.g., 'gemini-pro')
+ * @param geminiClient - Configured GoogleGenerativeAI client
+ * @returns GenerativeModel instance for the specified model
+ */
 const getModel = (modelName, geminiClient) => {
     return geminiClient.getGenerativeModel({ model: modelName });
 };
+/**
+ * Generates a structured response using the Gemini model
+ * @param model - Configured GenerativeModel instance
+ * @param prompt - System prompt/instructions for the model
+ * @param schema - JSON schema defining the expected response structure
+ * @returns Promise resolving to the generated response text
+ */
 const generateResponse = async (model, prompt, 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 schema) => {
@@ -36161,6 +36260,12 @@ schema) => {
     const result = await model.generateContent(generativeContent);
     return result.response.text();
 };
+/**
+ * Creates a structured content request for the Gemini API
+ * @param prompt - System instruction prompt
+ * @param schema - JSON schema for response validation
+ * @returns Configured GenerateContentRequest object
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getGenerativeContentRequest = (prompt, schema) => {
     return {

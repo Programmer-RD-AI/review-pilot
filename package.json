@@ -9,6 +9,7 @@
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "format": "prettier --write .",
+    "docs": "typedoc src/index.ts --out docs --entryPointStrategy expand",
     "prepare": "husky"
   },
   "keywords": [],

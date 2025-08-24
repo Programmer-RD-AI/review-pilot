@@ -4,6 +4,13 @@ import type { Config, CustomContext, FileChange } from './types.js';
 import { FileStatus } from './types.js';
 import { parseQueryParams } from './utils.js';
 
+/**
+ * Retrieves and processes file changes from a pull request
+ * @param octokitClient - Authenticated GitHub API client
+ * @param context - GitHub context information for the PR
+ * @param config - Configuration object containing review settings
+ * @returns Promise resolving to JSON string of file changes
+ */
 const getFileChanges = async (
   octokitClient: InstanceType<typeof GitHub>,
   context: CustomContext,
@@ -39,6 +46,14 @@ const getFileChanges = async (
   return JSON.stringify(fileChanges);
 };
 
+/**
+ * Fetches the content of a specific file from a GitHub repository
+ * @param octokitClient - Authenticated GitHub API client
+ * @param context - GitHub context information
+ * @param path - File path relative to repository root
+ * @param ref - Git reference (branch/commit) to fetch from
+ * @returns Promise resolving to file content as string
+ */
 const getFile = async (
   octokitClient: InstanceType<typeof GitHub>,
   context: CustomContext,
@@ -61,6 +76,12 @@ const getFile = async (
   return '';
 };
 
+/**
+ * Retrieves all existing PR interactions (comments, review comments, and reviews)
+ * @param octokitClient - Authenticated GitHub API client
+ * @param context - GitHub context information for the PR
+ * @returns Promise resolving to array of JSON strings containing PR interactions
+ */
 const getPRInteractions = async (
   octokitClient: InstanceType<typeof GitHub>,
   context: CustomContext,

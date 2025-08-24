@@ -2,6 +2,10 @@ import type { Config, ReviewLevel } from './types.js';
 import * as core from '@actions/core';
 import { fetchFile, isAllowedFileType } from './utils.js';
 import { SUPPORTED_CUSTOM_INSTRUCTIONS_FILE_TYPES } from './constants.js';
+/**
+ * Retrieves and validates configuration from GitHub Actions inputs
+ * @returns Promise resolving to a complete Config object
+ */
 const getConfig = async (): Promise<Config> => {
   const token = core.getInput('token', { required: true });
   const customInstructionsUri = core.getInput('customInstructionUri');

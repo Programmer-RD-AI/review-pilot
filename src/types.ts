@@ -1,6 +1,12 @@
+/**
+ * Represents a single review comment on a file
+ */
 type ReviewComment = {
+  /** The file path relative to repository root */
   path: string;
+  /** The line position in the diff where the comment applies */
   position: number;
+  /** The comment text content */
   body: string;
 };
 
