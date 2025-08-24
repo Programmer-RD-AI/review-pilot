@@ -2,6 +2,7 @@ import type { GitHub } from '@actions/github/lib/utils.js';
 import type { Config, CustomContext, FileChange } from './types.js';
 import { FileStatus } from './types.js';
 import { parseQueryParams } from './utils.js';
+import * as core from '@actions/core';
 
 /**
  * Retrieves and processes file changes from a pull request
@@ -25,6 +26,7 @@ const getFileChanges = async (
     if (file.changes > config.maxChanges) {
       continue;
     }
+    core.info(file.patch as string);
     const fileChange: FileChange = {
       fileName: file.filename,
       status: FileStatus[file.status as keyof typeof FileStatus],

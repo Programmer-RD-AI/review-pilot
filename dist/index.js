@@ -36027,6 +36027,28 @@ For EVERY file you review, follow this exact process:
 ===== THE CODE TO REVIEW =====
 {{ files_changed }}
 
+===== POSITION CALCULATION =====
+
+**CRITICAL**: Position calculation is strict and must be correct:
+
+1. **Only comment on lines that exist in the patch**
+2. **Position counting starts at 1 AFTER each @@ header**
+3. **Count ALL lines in the patch: context (space), removed (-), and added (+)**
+4. **You can only comment on "+" (added) lines or context lines**
+5. **Never use position 0 or negative numbers**
+
+**Position Example:**
+
+@@ -45,6 +45,8 @@ function process() {    <- This header doesn't count
+  if (data) {                                    <- Position 1 (context line)
+    validate(data);                              <- Position 2 (context line)  
+  }                                             <- Position 3 (context line)
++ if (!data.id) return;                        <- Position 4 (NEW - can comment here)
++ console.log('processing');                   <- Position 5 (NEW - can comment here)
+  return result;                              <- Position 6 (context line)
+
+To comment on the "if (!data.id)" line, use position 4.
+
 ===== OUTPUT FORMAT =====
 
 Return valid JSON only with these fields:
@@ -36034,27 +36056,27 @@ Return valid JSON only with these fields:
 - "event": Either "REQUEST_CHANGES" or "COMMENT"  
 - "comments": Array of comment objects with "body", "path", and "position" fields
 
+**POSITION VALIDATION**: Before adding any comment, verify:
+1. The position number corresponds to an actual line in the patch
+2. The position is counting correctly from 1 after the @@ header
+3. You're commenting on a "+" line (new code) that actually has a problem
+
 ===== EXAMPLES =====
 
 **GOOD COMMENT:**
-"Line 47: The \`userId\` parameter isn't validated before the database query. This could allow SQL injection if \`userId\` comes from user input."
+"The \`userId\` parameter isn't validated before the database query. This could allow SQL injection if \`userId\` comes from user input."
 
 **BAD COMMENT:**  
 "Consider adding input validation" (too vague, doesn't explain the actual risk)
-
-**GOOD COMMENT:**
-"Line 23: \`Promise.all()\` is used but individual promise failures aren't handled. If any API call fails, the entire operation will fail silently."
-
-**BAD COMMENT:**
-"Missing error handling" (doesn't explain the specific problem or impact)
 
 ===== CRITICAL REMINDERS =====
 
 - ONLY comment on code you can see in the patches
 - ALWAYS check the full file context before claiming something is "missing"  
 - Focus on problems that will actually break things or cause issues
-- If the code looks fine, return empty comments array - silence is better than noise
-- Be specific about what's wrong and why it matters
+- Calculate position numbers carefully - incorrect positions cause API errors
+- If you can't calculate the correct position, don't comment
+- If the code looks fine, return empty comments array
 
 Review the code now.
 `;
@@ -36112,6 +36134,7 @@ var FileStatus;
 ;// CONCATENATED MODULE: ./src/data.ts
 
 
+
 /**
  * Retrieves and processes file changes from a pull request
  * @param octokitClient - Authenticated GitHub API client
@@ -36130,6 +36153,7 @@ const getFileChanges = async (octokitClient, context, config) => {
         if (file.changes > config.maxChanges) {
             continue;
         }
+        core.info(file.patch);
         const fileChange = {
             fileName: file.filename,
             status: FileStatus[file.status],
