@@ -25,6 +25,9 @@ async function run(): Promise<void> {
       octokit,
       context,
     );
+    core.info(existingComments ?? '');
+    core.info(existingReviewComments ?? '');
+    core.info(existingReviews ?? '');
     const prompt = populatePromptTemplate(getPrReviewBasePrompt(), {
       custom_instructions: config.customInstructions,
       files_changed: fileChanges,

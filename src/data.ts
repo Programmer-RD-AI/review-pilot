@@ -18,7 +18,6 @@ const getFileChanges = async (
     if (file.changes > config.maxChanges) {
       continue;
     }
-    core.info(JSON.stringify(file));
     const fileChange: FileChange = {
       fileName: file.filename,
       status: FileStatus[file.status as keyof typeof FileStatus],
@@ -33,6 +32,7 @@ const getFileChanges = async (
         parseQueryParams(file.contents_url)['ref'] ?? '',
       ),
     };
+    core.info(fileChange.context);
     fileChanges.push(fileChange);
   }
   return JSON.stringify(fileChanges);

@@ -36086,7 +36086,6 @@ const getFileChanges = async (octokitClient, context, config) => {
         if (file.changes > config.maxChanges) {
             continue;
         }
-        core.info(JSON.stringify(file));
         const fileChange = {
             fileName: file.filename,
             status: FileStatus[file.status],
@@ -36096,6 +36095,7 @@ const getFileChanges = async (octokitClient, context, config) => {
             diff: file.patch,
             context: await getFile(octokitClient, context, file.filename, parseQueryParams(file.contents_url)['ref'] ?? ''),
         };
+        core.info(fileChange.context);
         fileChanges.push(fileChange);
     }
     return JSON.stringify(fileChanges);
@@ -36204,6 +36204,9 @@ async function run() {
         }
         const fileChanges = await getFileChanges(octokit, context, config);
         const [existingComments, existingReviewComments, existingReviews] = await getPRInteractions(octokit, context);
+        core.info(existingComments ?? '');
+        core.info(existingReviewComments ?? '');
+        core.info(existingReviews ?? '');
         const prompt = populatePromptTemplate(prReviewPrompt(), {
             custom_instructions: config.customInstructions,
             files_changed: fileChanges,
