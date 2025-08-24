@@ -36035,6 +36035,18 @@ Description: {{ pr_description }}
 
 **If you can't point to the specific "+" line in the patch, DON'T COMMENT ON IT.**
 
+===== SPECIFIC EXAMPLE: DEBUG STATEMENTS =====
+**WRONG WAY:**
+- See debug statement in patch A at line 42
+- Comment on patch B (different file/location) saying "remove debug statements"
+- This creates confusion because patch B doesn't have that debug statement
+
+**RIGHT WAY:**
+- See debug statement in patch A at line 42  
+- Comment ONLY on patch A, position 2 (or whatever the correct patch position is)
+- Say "This debug statement should be removed before production"
+- Make sure your position points to the exact line with the debug statement
+
 ===== THE CODE TO REVIEW =====
 {{ files_changed }}
 
@@ -36083,7 +36095,8 @@ Return valid JSON only with these fields:
 3. ✓ Commenting on a "+" (added) line with actual issues
 4. ✓ Position is reasonable (usually 1-10), not a large file line number
 5. ✓ If position seems high (>10), please recount carefully
-6. ✓ When in doubt about position accuracy, it's better to skip the comment
+6. ✓ The issue I'm commenting on is LITERALLY VISIBLE in the "+" line at this position
+7. ✓ When in doubt about position accuracy, it's better to skip the comment
 
 ===== EXAMPLES =====
 
