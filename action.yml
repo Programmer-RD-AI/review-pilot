@@ -1,6 +1,9 @@
 name: 'ReviewPilot Action'
-description: 'A lightweight, AI-powered PR reviewer, think Copilot’s insights, but leaner and sharper.'
+description: 'A lightweight, AI-powered PR reviewer, think Copilot's insights, but leaner and sharper.'
 author: 'Programmer-RD-AI'
+branding:
+  icon: 'eye'
+  color: 'blue'
 inputs:
   token:
     description: 'GitHub token (use secrets.GITHUB_TOKEN)'
