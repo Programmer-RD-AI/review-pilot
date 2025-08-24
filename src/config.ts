@@ -7,10 +7,11 @@ const getConfig = async (): Promise<Config> => {
   const customInstructionsUri = core.getInput('customInstructionUri');
   let customInstructions;
   if (customInstructionsUri) {
-    if (isAllowedFileType(customInstructionsUri)) {
+    if (!isAllowedFileType(customInstructionsUri)) {
       core.warning(
         `File "${customInstructionsUri}" is not in the allowed list. Allowed extensions are: ${SUPPORTED_CUSTOM_INSTRUCTIONS_FILE_TYPES.join(', ')}`,
       );
+    } else {
       customInstructions = await fetchFile(customInstructionsUri);
     }
   }
