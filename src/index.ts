@@ -39,44 +39,17 @@ async function run(): Promise<void> {
     const geminiClient = gemini.getClient(apiKey);
     const geminiModel = gemini.getModel(model, geminiClient);
     const rawResponse = await gemini.generateResponse(geminiModel, prompt, ReviewCommentsSchema);
+    console.log(rawResponse);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const response: ReviewComments = JSON.parse(rawResponse);
-    for (const reviewComment of response.reviewComments) {
-      // Build the params object, only including optional properties if defined
-      const params: {
-        owner: string;
-        repo: string;
-        pull_number: number;
-        commit_id: string;
-        path: string;
-        line: number;
-        side: 'RIGHT' | 'LEFT';
-        body: string;
-        start_line?: number;
-        start_side?: 'RIGHT' | 'LEFT';
-      } = {
-        owner: repo.owner,
-        repo: repo.repo,
-        pull_number: prNumber,
-        commit_id: commitId,
-        path: reviewComment.path,
-        line: reviewComment.line,
-        side: reviewComment.side,
-        body: reviewComment.body,
-      };
-      if (typeof reviewComment.start_line === 'number') {
-        params['start_line'] = reviewComment.start_line;
-      }
-      if (typeof reviewComment.start_side === 'string') {
-        params['start_side'] = reviewComment.start_side;
-      }
-      await octokit.rest.pulls.createReviewComment(params);
-    }
-    await octokit.rest.issues.createComment({
+    await octokit.rest.pulls.createReview({
       owner: repo.owner,
       repo: repo.repo,
-      issue_number: prNumber,
+      pull_number: prNumber,
+      commit_id: commitId,
       body: response.summary,
+      event: 'COMMENT',
+      comments: response.reviewComments,
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: unknown) {

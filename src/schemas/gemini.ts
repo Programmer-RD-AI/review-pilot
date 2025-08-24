@@ -23,26 +23,12 @@ const ReviewCommentsSchema = {
             type: SchemaType.STRING,
             description: 'File path related to the comment',
           },
-          line: {
+          position: {
             type: SchemaType.NUMBER,
             description: 'Line number in the diff where the comment applies',
           },
-          side: {
-            type: SchemaType.STRING,
-            description: 'Side of the diff (e.g., LEFT, RIGHT)',
-          },
-          start_line: {
-            type: SchemaType.NUMBER,
-            description: 'Optional starting line number for multi-line changes',
-            nullable: true,
-          },
-          start_side: {
-            type: SchemaType.STRING,
-            description: 'Optional starting side for multi-line changes',
-            nullable: true,
-          },
         },
-        required: ['body', 'path', 'line', 'side'],
+        required: ['body', 'path', 'position'],
       },
     },
   },
