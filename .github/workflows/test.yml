@@ -16,4 +16,4 @@ jobs:
         uses: ./
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          apiKey: ${{secrets.GEMINI_API_KEY}}
+          apiKey: ${{ secrets.GEMINI_API_KEY }}
