@@ -36026,25 +36026,30 @@ Branch: {{ pr_source_branch }} → {{ pr_target_branch }}
 
 ===== POSITION CALCULATION =====
 
-**CRITICAL**: Position calculation is strict and must be correct:
+**MANDATORY RULES**:
+1. **ONLY comment on "+" lines (added code) that have real problems**
+2. **Position = line number in the patch starting from 1 AFTER the @@ header**
+3. **Count EVERY line: context (space), removed (-), and added (+)**
+4. **If you can't count the exact position, DON'T COMMENT**
 
-1. **Only comment on lines that exist in the patch**
-2. **Position counting starts at 1 AFTER each @@ header**
-3. **Count ALL lines in the patch: context (space), removed (-), and added (+)**
-4. **You can only comment on "+" (added) lines or context lines**
-5. **Never use position 0 or negative numbers**
+**Example Patch:**
 
-**Position Example:**
+@@ -10,4 +10,6 @@ function validate() {
+  if (!data) {           <- Position 1
+    return false;        <- Position 2
+  }                     <- Position 3
++ let result;           <- Position 4 (NEW CODE - can comment)
++ return result;        <- Position 5 (NEW CODE - can comment)
+}                       <- Position 6
 
-@@ -45,6 +45,8 @@ function process() {    <- This header doesn't count
-  if (data) {                                    <- Position 1 (context line)
-    validate(data);                              <- Position 2 (context line)  
-  }                                             <- Position 3 (context line)
-+ if (!data.id) return;                        <- Position 4 (NEW - can comment here)
-+ console.log('processing');                   <- Position 5 (NEW - can comment here)
-  return result;                              <- Position 6 (context line)
+**BEFORE COMMENTING**:
+- Look at the patch line by line
+- Count from 1 after the @@ header
+- Make sure the position points to a "+" line
+- Verify there's actually a problem with that specific line
 
-To comment on the "if (!data.id)" line, use position 4.
+**DEBUGGING**: If unsure about position, count out loud:
+"@@ header (doesn't count), line 1, line 2, line 3, THIS is position 4"
 
 ===== OUTPUT FORMAT =====
 
@@ -36055,8 +36060,9 @@ Return valid JSON only with these fields:
 
 **POSITION VALIDATION**: Before adding any comment, verify:
 1. The position number corresponds to an actual line in the patch
-2. The position is counting correctly from 1 after the @@ header
+2. The position is counting correctly from 1 after the @@ header  
 3. You're commenting on a "+" line (new code) that actually has a problem
+4. SAFETY CHECK: If position calculation seems wrong, return empty comments array instead
 
 ===== EXAMPLES =====
 
@@ -36150,7 +36156,9 @@ const getFileChanges = async (octokitClient, context, config) => {
         if (file.changes > config.maxChanges) {
             continue;
         }
+        core.info(`=== PATCH FOR ${file.filename} ===`);
         core.info(file.patch);
+        core.info(`=== END PATCH FOR ${file.filename} ===`);
         const fileChange = {
             fileName: file.filename,
             status: FileStatus[file.status],
