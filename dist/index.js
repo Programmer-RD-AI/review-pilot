@@ -35870,7 +35870,7 @@ class GoogleGenerativeAI {
 
 //# sourceMappingURL=index.mjs.map
 
-;// CONCATENATED MODULE: ./src/schemas/gemini.ts
+;// CONCATENATED MODULE: ./src/schemas/reviewerSchema.ts
 
 const ReviewCommentsSchema = {
     description: 'Code review output focusing on bugs, security issues, and serious problems in new/changed code only.',
@@ -35932,7 +35932,7 @@ const addPullRequestReviewQuery = () => {
 };
 
 
-;// CONCATENATED MODULE: ./src/api/prReview.ts
+;// CONCATENATED MODULE: ./src/api/pullRequestReview.ts
 
 
 /**
@@ -35957,9 +35957,9 @@ const createReview = async (token, prNodeId, summary, event, comments) => {
         },
     });
 };
-/* harmony default export */ const prReview = (createReview);
+/* harmony default export */ const pullRequestReview = (createReview);
 
-;// CONCATENATED MODULE: ./src/prompts/prReviewPrompt.ts
+;// CONCATENATED MODULE: ./src/prompts/basePrompt.ts
 /**
  * Returns the base system prompt template for pull request reviews
  * @returns Jinja2 template string containing the complete review instructions
@@ -36138,7 +36138,7 @@ Examples of when to stay silent:
 Review the code now.
 `;
 };
-/* harmony default export */ const prReviewPrompt = (getPrReviewBasePrompt);
+/* harmony default export */ const basePrompt = (getPrReviewBasePrompt);
 
 ;// CONCATENATED MODULE: ./src/config.ts
 
@@ -36210,9 +36210,7 @@ const getFileChanges = async (octokitClient, context, config) => {
         if (file.changes > config.maxChanges) {
             continue;
         }
-        core.info(`=== PATCH FOR ${file.filename} ===`);
         core.info(file.patch);
-        core.info(`=== END PATCH FOR ${file.filename} ===`);
         const fileChange = {
             fileName: file.filename,
             status: FileStatus[file.status],
@@ -36368,7 +36366,7 @@ async function run() {
         }
         const fileChanges = await getFileChanges(octokit, context, config);
         const [existingComments, existingReviewComments, existingReviews] = await getPRInteractions(octokit, context);
-        const prompt = populatePromptTemplate(prReviewPrompt(), {
+        const prompt = populatePromptTemplate(basePrompt(), {
             custom_instructions: config.customInstructions,
             files_changed: fileChanges,
             pr_description: context.prDescription,
@@ -36385,7 +36383,7 @@ async function run() {
         const response = JSON.parse(rawResponse);
         // Only create review if there are actual comments
         if (response.comments.length > 0) {
-            await prReview(config.token, context.prNodeId, response.summary, response.event, response.comments);
+            await pullRequestReview(config.token, context.prNodeId, response.summary, response.event, response.comments);
         }
         else {
             core.info('No actionable feedback needed - skipping review creation');

@@ -26,9 +26,7 @@ const getFileChanges = async (
     if (file.changes > config.maxChanges) {
       continue;
     }
-    core.info(`=== PATCH FOR ${file.filename} ===`);
     core.info(file.patch as string);
-    core.info(`=== END PATCH FOR ${file.filename} ===`);
     const fileChange: FileChange = {
       fileName: file.filename,
       status: FileStatus[file.status as keyof typeof FileStatus],
