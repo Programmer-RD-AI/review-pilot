@@ -5,6 +5,7 @@ type ReviewComment = {
 };
 type ReviewComments = {
     summary: string;
+    event: 'COMMENT' | 'REQUEST_CHANGES';
     comments: Array<ReviewComment>;
 };
 declare enum FileStatus {

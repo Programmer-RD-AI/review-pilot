@@ -3,6 +3,11 @@ import type { Context } from '@actions/github/lib/context.js';
 import type { GitHub } from '@actions/github/lib/utils.js';
 import type { FileChange } from './types.js';
 import { FileStatus } from './types.js';
+import { Template } from '@huggingface/jinja';
+
+const populatePromptTemplate = (prompt: string, context: Record<string, string | null>): string => {
+  return new Template(prompt).render(context).trim();
+};
 
 const getPRDiff = async (
   octokitClient: InstanceType<typeof GitHub>,
@@ -29,6 +34,7 @@ const getPRDiff = async (
   }
   return fileChanges;
 };
+
 const fetchFile = async (url: string): Promise<string> => {
   const response = await fetch(url);
 
@@ -46,4 +52,4 @@ const getGithubContext = (): Context => {
   return context;
 };
 
-export { getPRDiff, getGithubContext, fetchFile };
+export { getPRDiff, getGithubContext, fetchFile, populatePromptTemplate };

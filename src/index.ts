@@ -2,12 +2,12 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import type { Context } from '@actions/github/lib/context.js';
-import { fetchFile, getGithubContext, getPRDiff } from './utils.js';
+import { fetchFile, getGithubContext, getPRDiff, populatePromptTemplate } from './utils.js';
 import type { FileChange, ReviewComments } from './types.js';
-import getPRReviewPrompt from './prompts.js';
 import { gemini } from './clients/index.js';
 import { ReviewCommentsSchema } from './schemas/gemini.js';
-import createReview from './graphql.js';
+import createReview from './api/prReview.js';
+import getPrReviewBasePrompt from './prompts/prReviewPrompt.js';
 
 async function run(): Promise<void> {
   try {
@@ -18,11 +18,40 @@ async function run(): Promise<void> {
     const octokit = github.getOctokit(token);
     let customInstructions = null;
     const context: Context = getGithubContext();
-    if (!context.payload.pull_request) {
+    const pr = context.payload.pull_request;
+    if (!pr) {
       core.setFailed('This action must run on pull_request events');
       return;
     }
-    const prNodeId = context.payload.pull_request['node_id'];
+    const prNodeId = pr['node_id'];
+
+    // PR metadata
+    const prDescription = pr.body ?? '';
+
+    // Existing comments (conversation)
+    const { data: existingCommentsData } = await octokit.rest.issues.listComments({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      issue_number: pr.number,
+    });
+    const existingComments = existingCommentsData.map((c) => ({
+      author: c.user?.login,
+      body: c.body,
+    }));
+
+    // Existing review comments (inline)
+    const { data: existingReviewCommentsData } = await octokit.rest.pulls.listReviewComments({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      pull_number: pr.number,
+    });
+    const existingReviewComments = existingReviewCommentsData.map((c) => ({
+      author: c.user?.login,
+      body: c.body,
+      path: c.path,
+      line: c.line,
+    }));
+
     if (customInstructionUri && customInstructionUri.endsWith('.txt')) {
       // TODO: add a warning when the user provides a customInstructionUri yet it is not of type .txt
       customInstructions = await fetchFile(customInstructionUri);
@@ -31,12 +60,18 @@ async function run(): Promise<void> {
       octokit,
       context.repo.owner,
       context.repo.repo,
-      context.payload.pull_request.number,
+      pr.number,
     );
     const filesChangedStr: string = JSON.stringify(filesChanged);
     core.info(filesChangedStr);
     core.info(customInstructions ? customInstructionUri : '');
-    const prompt = getPRReviewPrompt(filesChangedStr, customInstructions);
+    const prompt = populatePromptTemplate(getPrReviewBasePrompt(), {
+      custom_instructions: customInstructions,
+      files_changed: filesChangedStr,
+      pr_description: prDescription,
+      existing_comments: JSON.stringify(existingComments),
+      existing_review_comments: JSON.stringify(existingReviewComments),
+    });
     const geminiClient = gemini.getClient(apiKey);
     const geminiModel = gemini.getModel(model, geminiClient);
     core.info(prompt);
@@ -44,7 +79,13 @@ async function run(): Promise<void> {
     core.info(rawResponse);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const response: ReviewComments = JSON.parse(rawResponse);
-    await createReview(token, prNodeId as string, response.summary, response.comments);
+    await createReview(
+      token,
+      prNodeId as string,
+      response.summary,
+      response.event,
+      response.comments,
+    );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: unknown) {
     core.setFailed((error as { message: string }).message);

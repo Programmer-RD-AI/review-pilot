@@ -7,6 +7,11 @@ declare const ReviewCommentsSchema: {
             type: SchemaType;
             description: string;
         };
+        event: {
+            type: SchemaType;
+            description: string;
+            enum: string[];
+        };
         comments: {
             type: SchemaType;
             description: string;

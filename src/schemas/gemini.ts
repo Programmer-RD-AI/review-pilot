@@ -8,6 +8,12 @@ const ReviewCommentsSchema = {
       type: SchemaType.STRING,
       description: 'A concise overall summary of the review',
     },
+    event: {
+      type: SchemaType.STRING,
+      description:
+        'The review event type. "COMMENT" for suggestions, "REQUEST_CHANGES" for critical issues.',
+      enum: ['COMMENT', 'REQUEST_CHANGES'],
+    },
     comments: {
       type: SchemaType.ARRAY,
       description: 'List of individual review comments',
@@ -32,7 +38,7 @@ const ReviewCommentsSchema = {
       },
     },
   },
-  required: ['summary', 'comments'],
+  required: ['summary', 'event', 'comments'],
 };
 
 export { ReviewCommentsSchema };

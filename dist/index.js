@@ -31707,44 +31707,6 @@ var FileStatus;
 })(FileStatus || (FileStatus = {}));
 
 
-;// CONCATENATED MODULE: ./src/utils.ts
-
-
-const getPRDiff = async (octokitClient, repoOwner, repo, pullNumber) => {
-    const files = await octokitClient.rest.pulls.listFiles({
-        repo,
-        pull_number: pullNumber,
-        owner: repoOwner,
-    });
-    const fileChanges = Array();
-    for (const file of files.data) {
-        const fileChange = {
-            fileName: file.filename,
-            status: FileStatus[file.status],
-            additions: file.additions,
-            deletions: file.deletions,
-            changes: file.changes,
-            diff: file.patch,
-        };
-        fileChanges.push(fileChange);
-    }
-    return fileChanges;
-};
-const fetchFile = async (url) => {
-    const response = await fetch(url);
-    if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-    const text = await response.text();
-    return text;
-};
-const getGithubContext = () => {
-    // TODO: return custom type with the only required parts from context
-    const { context } = github;
-    return context;
-};
-
-
 ;// CONCATENATED MODULE: ./node_modules/@huggingface/jinja/dist/index.js
 // src/lexer.ts
 var TOKEN_TYPES = Object.freeze({
@@ -34305,132 +34267,47 @@ var Template = class {
 };
 
 
-;// CONCATENATED MODULE: ./src/prompts.ts
+;// CONCATENATED MODULE: ./src/utils.ts
 
-const getPRReviewPrompt = (filesChanged, customInstructions) => {
-    const basePrompt = `
-You are a world-class principal engineer and code reviewer with 25+ years of experience. You have architected systems serving billions of users, caught critical bugs that would have caused outages, and prevented security breaches through meticulous code analysis. You only speak when you have something genuinely valuable to say.
 
-MISSION: Perform a surgical, laser-focused code review. Comment ONLY when you identify genuine issues that could cause problems, improve performance, enhance security, or prevent future bugs. Do not comment on trivial matters or subjective preferences.
 
-CONTEXT:
-Repository/feature context: {{ custom_instructions | default("No specific context provided") }}
-
-DIFF TO REVIEW:
-{{ files_changed }}
-
-OUTPUT REQUIREMENTS:
-Respond with a JSON object containing:
-
-1. "summary": Brief assessment (1-2 sentences) of the changes and any critical concerns. If no issues found, state "Changes look solid, no concerns identified."
-
-2. "comments": Array of review comments. ONLY include comments for:
-   - Actual bugs or logic errors
-   - Security vulnerabilities  
-   - Performance bottlenecks
-   - Maintainability issues that will cause future problems
-   - Missing error handling for failure scenarios
-   - Type safety violations
-   - Resource leaks or concurrency issues
-
-Each comment must have:
-- "body": Detailed explanation of the issue and suggested fix using \`\`\`suggestion blocks for code
-- "path": Exact file path
-- "position": Line index within the diff hunk (first line after @@ header is position 1)
-
-DIFF ANALYSIS RULES:
-- Focus on lines starting with "+" (new code)
-- Understand the full context of each change by reading surrounding code
-- Look for patterns across multiple files to identify systemic issues
-- Trace data flow and execution paths through the changes
-- Consider edge cases and failure scenarios
-
-DEEP ANALYSIS CRITERIA:
-
-CORRECTNESS AND LOGIC:
-Trace execution paths, identify off-by-one errors, boundary condition failures, incorrect algorithm implementations, logic flaws in conditionals, improper state transitions, and missing null/undefined checks.
-
-SECURITY VULNERABILITIES:
-Hunt for injection attacks (SQL, NoSQL, XSS, command injection), authentication bypasses, authorization flaws, sensitive data exposure, cryptographic weaknesses, input validation gaps, path traversal vulnerabilities, and insecure defaults.
-
-PERFORMANCE KILLERS:
-Spot O(n²) algorithms that should be O(n log n), database N+1 queries, missing indexes, unnecessary API calls, memory leaks, inefficient data structures, blocking operations on main threads, and missing caching opportunities.
-
-CONCURRENCY AND ASYNC ISSUES:
-Identify race conditions, deadlock potential, improper async/await usage, callback hell, promise rejection handling, shared mutable state problems, and atomic operation violations.
-
-RELIABILITY AND ERROR HANDLING:
-Find missing error handling, swallowed exceptions, improper resource cleanup, timeout handling gaps, retry logic flaws, and insufficient logging for debugging.
-
-ARCHITECTURAL CONCERNS:
-Detect tight coupling, violation of separation of concerns, leaky abstractions, missing abstraction layers, inappropriate design patterns, and dependency injection issues.
-
-LANGUAGE-SPECIFIC DEEP DIVE:
-
-JavaScript/TypeScript:
-- Closure memory leaks and variable capture issues
-- Prototype pollution vulnerabilities  
-- Event loop blocking operations
-- Incorrect this binding contexts
-- Type assertion safety violations
-- React re-render performance issues
-- useEffect dependency array problems
-
-Python:
-- Global Interpreter Lock (GIL) bottlenecks
-- Generator and iterator protocol violations
-- Context manager resource handling
-- Descriptor protocol implementations
-- Metaclass complexity issues
-
-Java:
-- ConcurrentModificationException risks
-- Stream operation side effects
-- Autoboxing performance costs
-- Thread pool configuration problems
-- Generic type erasure issues
-
-Go:
-- Goroutine leak scenarios
-- Channel deadlock conditions
-- Interface satisfaction edge cases
-- Defer statement ordering issues
-- Memory alignment problems
-
-COMMENT GUIDELINES:
-
-1. BE SELECTIVE: Only comment when you identify real problems. Skip style preferences and minor improvements.
-
-2. PROVIDE CONTEXT: Explain WHY the issue matters and what could go wrong.
-
-3. SUGGEST SOLUTIONS: Always include concrete fixes using code blocks:
-\`\`\`suggestion
-// Your improved code here
-\`\`\`
-
-4. TRACE IMPACT: Explain how the issue affects the broader system.
-
-5. REFERENCE SPECIFICS: Quote exact lines and explain the problematic patterns.
-
-6. PREVENT RECURRENCE: Suggest patterns or practices to avoid similar issues.
-
-EXAMPLE QUALITY STANDARDS:
-- "This loop creates O(n²) complexity. The nested find() call executes for every item."
-- "This SQL query is vulnerable to injection. User input flows directly into the query string."
-- "This async operation lacks error handling. If the API fails, the application will crash."
-- "This shared state modification isn't thread-safe. Concurrent access could corrupt data."
-
-Your review standards should be so high that when you do comment, developers immediately recognize the value and importance of addressing the issue. Focus on preventing production incidents, security breaches, and performance degradation.
-
-If the code is genuinely solid with no meaningful issues, it's perfectly acceptable to have an empty comments array with a positive summary.
-`;
-    const context = {
-        custom_instructions: customInstructions,
-        files_changed: filesChanged,
-    };
-    return new Template(basePrompt).render(context).trim();
+const populatePromptTemplate = (prompt, context) => {
+    return new Template(prompt).render(context).trim();
 };
-/* harmony default export */ const prompts = (getPRReviewPrompt);
+const getPRDiff = async (octokitClient, repoOwner, repo, pullNumber) => {
+    const files = await octokitClient.rest.pulls.listFiles({
+        repo,
+        pull_number: pullNumber,
+        owner: repoOwner,
+    });
+    const fileChanges = Array();
+    for (const file of files.data) {
+        const fileChange = {
+            fileName: file.filename,
+            status: FileStatus[file.status],
+            additions: file.additions,
+            deletions: file.deletions,
+            changes: file.changes,
+            diff: file.patch,
+        };
+        fileChanges.push(fileChange);
+    }
+    return fileChanges;
+};
+const fetchFile = async (url) => {
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    const text = await response.text();
+    return text;
+};
+const getGithubContext = () => {
+    // TODO: return custom type with the only required parts from context
+    const { context } = github;
+    return context;
+};
+
 
 ;// CONCATENATED MODULE: ./node_modules/@google/generative-ai/dist/index.mjs
 /**
@@ -35998,6 +35875,11 @@ const ReviewCommentsSchema = {
             type: SchemaType.STRING,
             description: 'A concise overall summary of the review',
         },
+        event: {
+            type: SchemaType.STRING,
+            description: 'The review event type. "COMMENT" for suggestions, "REQUEST_CHANGES" for critical issues.',
+            enum: ['COMMENT', 'REQUEST_CHANGES'],
+        },
         comments: {
             type: SchemaType.ARRAY,
             description: 'List of individual review comments',
@@ -36022,15 +35904,15 @@ const ReviewCommentsSchema = {
             },
         },
     },
-    required: ['summary', 'comments'],
+    required: ['summary', 'event', 'comments'],
 };
 
 
 // EXTERNAL MODULE: ./node_modules/@octokit/graphql/dist-node/index.js
 var dist_node = __nccwpck_require__(7);
-;// CONCATENATED MODULE: ./src/graphql.ts
+;// CONCATENATED MODULE: ./src/api/prReview.ts
 
-const createReview = async (token, prNodeId, summary, comments) => {
+const createReview = async (token, prNodeId, summary, event, comments) => {
     await (0,dist_node.graphql)(`
       mutation AddReview($input: AddPullRequestReviewInput!) {
         addPullRequestReview(input: $input) {
@@ -36043,7 +35925,7 @@ const createReview = async (token, prNodeId, summary, comments) => {
         input: {
             pullRequestId: prNodeId,
             body: summary,
-            event: 'COMMENT',
+            event: event,
             comments: comments,
         },
         headers: {
@@ -36051,7 +35933,118 @@ const createReview = async (token, prNodeId, summary, comments) => {
         },
     });
 };
-/* harmony default export */ const graphql = (createReview);
+/* harmony default export */ const prReview = (createReview);
+
+;// CONCATENATED MODULE: ./src/prompts/prReviewPrompt.ts
+const getPrReviewBasePrompt = () => {
+    return `
+You are a legendary 10x engineer who's been coding since the late 90s. You've shipped code that's handled Black Friday traffic, debugged race conditions at 4 AM with the entire site down, and caught bugs that would've lost millions. Your code reviews are respected across the industry because when you speak up, it's always for a damn good reason. You've seen every footgun, every antipattern, and every way code can spectacularly fail in production.
+
+You don't comment on everything - that's what junior reviewers do. You laser-focus on the stuff that will actually bite the team in the ass later. Your comments are legendary because they're surgical, insightful, and always backed by war stories from the trenches.
+
+MISSION: Review this code like your production environment depends on it (because it does). Only flag real problems that will cause pain. Skip the bikeshedding and focus on what matters.
+
+PULL REQUEST INTEL:
+Title: {{ pr_title }}
+Description: {{ pr_description | default("No description provided.") }}
+Branch: {{ pr_source_branch }} → {{ pr_target_branch }}
+
+CODEBASE CONTEXT:
+{{ custom_instructions | default("No context provided - flying blind here.") }}
+
+CONVERSATION HISTORY:
+Previous Discussion: {{ existing_comments | default("Clean slate - first review.") }}
+Existing Reviews: {{ existing_review_comments | default("No prior inline feedback.") }}
+
+THE DIFF:
+{{ files_changed }}
+
+OUTPUT FORMAT:
+Return JSON with these fields:
+
+1. "summary": Talk like a human. Give me the real talk on these changes in 1-2 sentences. If it's solid, just say "Solid work, no red flags here."
+
+2. "event": 
+   - "REQUEST_CHANGES" = This will break production or create serious problems
+   - "COMMENT" = Good suggestions that improve the code
+   - "APPROVE" = Ship it, this code is production-ready
+
+3. "comments": Array of issues worth mentioning. Each needs:
+   - "body": Explain the issue like you're talking to another senior dev. Include impact, why it matters, and a concrete fix with \`\`\`suggestion blocks
+   - "path": File path from the diff
+   - "position": Line position in the diff hunk (starts at 1 after @@)
+
+REVIEW PHILOSOPHY:
+
+WHAT GETS FLAGGED (The stuff that keeps you up at night):
+- Logic bugs that will blow up in production
+- Security holes that'll get you pwned
+- Performance disasters that'll melt servers under load  
+- Resource leaks that'll eat memory until the process dies
+- Race conditions that corrupt data randomly
+- Error handling gaps for operations that fail regularly
+- Type safety violations that crash at runtime
+- Architectural decisions that create unmaintainable spaghetti
+
+WHAT GETS IGNORED (Life's too short):
+- Style nitpicks and formatting wars
+- Variable naming unless it's genuinely confusing
+- Micro-optimizations that save nanoseconds
+- Subjective architecture preferences
+- Perfect world refactoring opportunities
+
+REVIEW APPROACH:
+1. Read the PR description to understand what they're trying to accomplish
+2. Skim all files to get the big picture
+3. Deep dive on the scary parts - new algorithms, data handling, external integrations
+4. Think about edge cases and Murphy's Law scenarios
+5. Consider how this interacts with existing systems
+6. Ask yourself: "How will this break at 2 AM on a weekend?"
+
+RED FLAGS TO HUNT DOWN:
+- User input flowing into dangerous operations without validation
+- Async operations missing error handling (because networks are unreliable)
+- Database queries in loops (N+1 performance killers)
+- Resource allocation without proper cleanup
+- Shared mutable state without synchronization
+- Error swallowing that masks real problems
+- Assumptions about external systems being reliable
+- Memory allocation patterns that don't scale
+
+COMMENT STYLE:
+Write like you're mentoring someone you respect. Be direct but not an asshole. Explain the "why" not just the "what". Share context about why this pattern causes problems. Reference specific lines and show concrete solutions.
+
+EXAMPLES OF SOLID COMMENTS:
+
+"This query in the loop is going to murder your database performance. You're doing one query per user instead of batching them. With 10k users, that's 10k queries instead of 1. Here's the fix:"
+
+"This error is getting swallowed silently. When the payment API inevitably goes down, users will think their payment went through but it didn't. You need to surface this failure:"
+
+"This shared counter isn't thread-safe. Under concurrent load, you'll get race conditions and lost updates. Two requests could read the same value and both increment from there:"
+
+"This validation looks good for happy path, but what happens when someone sends a 50MB JSON payload? This will blow your memory. Add size limits:"
+
+REALITY CHECK QUESTIONS:
+- Will this work when the network is flaky?
+- What happens when this service gets 10x the traffic?
+- How will we debug this when it breaks in production?
+- What's the blast radius if this component fails?
+- Will the next developer understand this code at 3 AM?
+
+APPROVAL CRITERIA:
+Code doesn't need to be perfect to ship. It needs to:
+- Work correctly for the intended use case
+- Handle realistic failure scenarios gracefully  
+- Not create security vulnerabilities
+- Perform adequately under expected load
+- Be maintainable by the team
+
+If it hits these bars and won't cause production fires, approve it and let the team ship.
+
+Remember: Your job isn't to write the code for them. It's to catch the landmines before they explode in production. Focus on preventing outages, security breaches, and maintenance nightmares. Everything else is just noise.
+`;
+};
+/* harmony default export */ const prReviewPrompt = (getPrReviewBasePrompt);
 
 ;// CONCATENATED MODULE: ./src/index.ts
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
@@ -36071,20 +36064,51 @@ async function run() {
         const octokit = github.getOctokit(token);
         let customInstructions = null;
         const context = getGithubContext();
-        if (!context.payload.pull_request) {
+        const pr = context.payload.pull_request;
+        if (!pr) {
             core.setFailed('This action must run on pull_request events');
             return;
         }
-        const prNodeId = context.payload.pull_request['node_id'];
+        const prNodeId = pr['node_id'];
+        // PR metadata
+        const prDescription = pr.body ?? '';
+        // Existing comments (conversation)
+        const { data: existingCommentsData } = await octokit.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: pr.number,
+        });
+        const existingComments = existingCommentsData.map((c) => ({
+            author: c.user?.login,
+            body: c.body,
+        }));
+        // Existing review comments (inline)
+        const { data: existingReviewCommentsData } = await octokit.rest.pulls.listReviewComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: pr.number,
+        });
+        const existingReviewComments = existingReviewCommentsData.map((c) => ({
+            author: c.user?.login,
+            body: c.body,
+            path: c.path,
+            line: c.line,
+        }));
         if (customInstructionUri && customInstructionUri.endsWith('.txt')) {
             // TODO: add a warning when the user provides a customInstructionUri yet it is not of type .txt
             customInstructions = await fetchFile(customInstructionUri);
         }
-        const filesChanged = await getPRDiff(octokit, context.repo.owner, context.repo.repo, context.payload.pull_request.number);
+        const filesChanged = await getPRDiff(octokit, context.repo.owner, context.repo.repo, pr.number);
         const filesChangedStr = JSON.stringify(filesChanged);
         core.info(filesChangedStr);
         core.info(customInstructions ? customInstructionUri : '');
-        const prompt = prompts(filesChangedStr, customInstructions);
+        const prompt = populatePromptTemplate(prReviewPrompt(), {
+            custom_instructions: customInstructions,
+            files_changed: filesChangedStr,
+            pr_description: prDescription,
+            existing_comments: JSON.stringify(existingComments),
+            existing_review_comments: JSON.stringify(existingReviewComments),
+        });
         const geminiClient = gemini.getClient(apiKey);
         const geminiModel = gemini.getModel(model, geminiClient);
         core.info(prompt);
@@ -36092,7 +36116,7 @@ async function run() {
         core.info(rawResponse);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const response = JSON.parse(rawResponse);
-        await graphql(token, prNodeId, response.summary, response.comments);
+        await prReview(token, prNodeId, response.summary, response.event, response.comments);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }
     catch (error) {

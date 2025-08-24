@@ -1,9 +1,10 @@
 import { graphql } from '@octokit/graphql';
-import type { ReviewComment } from './types.js';
+import type { ReviewComment } from '../types.js';
 const createReview = async (
   token: string,
   prNodeId: string,
   summary: string,
+  event: 'COMMENT' | 'REQUEST_CHANGES',
   comments: Array<ReviewComment>,
 ) => {
   await graphql(
@@ -20,7 +21,7 @@ const createReview = async (
       input: {
         pullRequestId: prNodeId,
         body: summary,
-        event: 'COMMENT',
+        event: event,
         comments: comments,
       },
       headers: {

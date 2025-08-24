@@ -7,6 +7,11 @@ export declare const gemini: {
                 type: import("@google/generative-ai").SchemaType;
                 description: string;
             };
+            event: {
+                type: import("@google/generative-ai").SchemaType;
+                description: string;
+                enum: string[];
+            };
             comments: {
                 type: import("@google/generative-ai").SchemaType;
                 description: string;
