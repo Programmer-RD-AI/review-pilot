@@ -36022,15 +36022,18 @@ Description: {{ pr_description }}
 ===== THE CODE TO REVIEW =====
 {{ files_changed }}
 
-===== POSITION CALCULATION =====
+===== POSITION CALCULATION - READ THIS CAREFULLY =====
 
-**CRITICAL**: Position is NOT the file line number! Position is the line number within the PATCH ONLY!
+**STOP! READ THIS SECTION THREE TIMES BEFORE CALCULATING ANY POSITION!**
 
-**MANDATORY RULES**:
-1. **IGNORE the full file context for position calculation**
-2. **Position = line number in the PATCH starting from 1 AFTER the @@ header**
+**CRITICAL ERROR PREVENTION**: Position is NEVER EVER the file line number! Position is ONLY the line number within the DIFF PATCH!
+
+**ABSOLUTE MANDATORY RULES - FAILURE MEANS API ERROR**:
+1. **COMPLETELY IGNORE FILE LINE NUMBERS - THEY ARE WRONG**
+2. **Position = line number in the DIFF PATCH starting from 1 AFTER the @@ header**
 3. **Count EVERY line in the patch: context (space), removed (-), and added (+)**
-4. **You get both patch AND full file - use patch for position, full file for context**
+4. **If position > 10, YOU ARE DOING IT WRONG - STOP AND RECOUNT**
+5. **Use patch for position, full file ONLY for understanding context**
 
 **Example from the actual error:**
 
@@ -36058,12 +36061,13 @@ Return valid JSON only with these fields:
 - "event": Either "REQUEST_CHANGES" or "COMMENT"  
 - "comments": Array of comment objects with "body", "path", and "position" fields
 
-**POSITION VALIDATION**: Before adding any comment, verify:
-1. The position number corresponds to an actual line in the PATCH (not file)
-2. The position is counting correctly from 1 after the @@ header  
-3. You're commenting on a "+" line (new code) that actually has a problem
-4. DOUBLE-CHECK: Position should be small numbers (1-10 usually), not large file line numbers
-5. SAFETY CHECK: If position calculation seems wrong, return empty comments array instead
+**POSITION VALIDATION - MANDATORY BEFORE ANY COMMENT**:
+1. **VERIFY**: Position is counting lines in DIFF PATCH, not file
+2. **VERIFY**: You started counting from 1 AFTER the @@ header line
+3. **VERIFY**: You're commenting on a "+" line (new code) with real problems
+4. **VERIFY**: Position is small (1-10), NOT large file line numbers (20+)
+5. **VERIFY**: If you calculated position > 10, YOU MADE AN ERROR - RECOUNT OR SKIP
+6. **EMERGENCY STOP**: If ANY doubt about position, return empty comments array
 
 ===== EXAMPLES =====
 
@@ -36095,18 +36099,21 @@ Consider adding input validation (too vague, doesn't explain the actual risk)
 - If you can't calculate the correct position, don't comment
 - If the code looks fine, return empty comments array
 
-===== EMERGENCY POSITION SAFETY =====
+===== EMERGENCY POSITION SAFETY - FINAL CHECK =====
 
-**BEFORE COMMENTING, ASK YOURSELF:**
-1. Can I see the exact patch with @@ headers?
-2. Can I count line by line from 1 after the @@ header?
-3. Am I 100% sure this position number is correct?
-4. Is this line actually a "+" (added) line with a real problem?
+**BEFORE COMMENTING, ANSWER THESE QUESTIONS:**
+1. Can I see the exact diff patch with @@ headers?
+2. Did I count line by line from 1 AFTER the @@ header (NOT including the header)?
+3. Is my position number small (1-10) and NOT a file line number?
+4. Am I commenting on a "+" (added) line with an actual bug/issue?
+5. Would this position cause "Pull request review thread position is invalid" error?
 
-**IF ANY ANSWER IS NO: Return empty comments array!**
+**IF ANY ANSWER IS NO OR UNSURE: RETURN EMPTY COMMENTS ARRAY IMMEDIATELY!**
 
-**WHEN IN DOUBT: STAY SILENT**
+**WHEN IN DOUBT: STAY COMPLETELY SILENT**
 Better to provide no comments than crash the API with invalid positions.
+
+**REMEMBER**: Position 21 = WRONG! Position 4 = Probably correct!
 
 ===== DEFAULT BEHAVIOR =====
 For simple changes like:
