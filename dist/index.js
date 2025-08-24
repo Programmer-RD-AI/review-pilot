@@ -36285,7 +36285,7 @@ const getGenerativeContentRequest = (prompt, schema) => {
     return {
         contents: [
             {
-                role: 'system',
+                role: 'user',
                 parts: [{ text: prompt }],
             },
         ],
