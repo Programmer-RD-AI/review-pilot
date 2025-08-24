@@ -26,27 +26,25 @@ const getFileChanges = async (
       deletions: file.deletions,
       changes: file.changes,
       diff: file.patch,
-      context: await getFile(octokitClient, context, file.filename),
+      context: await getFile(file.raw_url, config),
     };
     fileChanges.push(fileChange);
   }
   return JSON.stringify(fileChanges);
 };
 
-const getFile = async (
-  octokitClient: InstanceType<typeof GitHub>,
-  context: CustomContext,
-  path: string,
-): Promise<string> => {
-  const fileContent = await octokitClient.rest.repos.getContent({
-    owner: context.repoOwner,
-    repo: context.repo,
-    path: path,
-    mediaType: {
-      format: 'raw',
+const getFile = async (rawUrl: string, config: Config): Promise<string> => {
+  const response = await fetch(rawUrl, {
+    headers: {
+      Authorization: `Bearer ${config.token}`,
     },
   });
-  return JSON.stringify(fileContent.data);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch raw file. HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  return await response.text();
 };
 
 const getPRInteractions = async (
