@@ -36026,30 +36026,32 @@ Branch: {{ pr_source_branch }} → {{ pr_target_branch }}
 
 ===== POSITION CALCULATION =====
 
+**CRITICAL**: Position is NOT the file line number! Position is the line number within the PATCH ONLY!
+
 **MANDATORY RULES**:
-1. **ONLY comment on "+" lines (added code) that have real problems**
-2. **Position = line number in the patch starting from 1 AFTER the @@ header**
-3. **Count EVERY line: context (space), removed (-), and added (+)**
-4. **If you can't count the exact position, DON'T COMMENT**
+1. **IGNORE the full file context for position calculation**
+2. **Position = line number in the PATCH starting from 1 AFTER the @@ header**
+3. **Count EVERY line in the patch: context (space), removed (-), and added (+)**
+4. **You get both patch AND full file - use patch for position, full file for context**
 
-**Example Patch:**
+**Example from the actual error:**
 
-@@ -10,4 +10,6 @@ function validate() {
-  if (!data) {           <- Position 1
-    return false;        <- Position 2
-  }                     <- Position 3
-+ let result;           <- Position 4 (NEW CODE - can comment)
-+ return result;        <- Position 5 (NEW CODE - can comment)
-}                       <- Position 6
+@@ -18,3 +18,4 @@ jobs:
+         with:                          <- Position 1 (NOT line 18!)
+           token: \${{ secrets.GITHUB_TOKEN }}  <- Position 2 (NOT line 19!)
+           apiKey: \${{ secrets.GEMINI_API_KEY }} <- Position 3 (NOT line 20!)
++          level: 'HIGH'                <- Position 4 (NOT line 21!)
 
-**BEFORE COMMENTING**:
-- Look at the patch line by line
-- Count from 1 after the @@ header
-- Make sure the position points to a "+" line
-- Verify there's actually a problem with that specific line
+To comment on "level: HIGH", use position 4, NOT 21!
 
-**DEBUGGING**: If unsure about position, count out loud:
-"@@ header (doesn't count), line 1, line 2, line 3, THIS is position 4"
+**WRONG**: Using file line numbers (18, 19, 20, 21)
+**RIGHT**: Using patch positions (1, 2, 3, 4)
+
+**DEBUGGING STEPS**:
+1. Find the @@ header in the patch
+2. Start counting from 1 on the NEXT line
+3. Count every line in the patch until you reach your target
+4. That number is your position
 
 ===== OUTPUT FORMAT =====
 
@@ -36059,12 +36061,26 @@ Return valid JSON only with these fields:
 - "comments": Array of comment objects with "body", "path", and "position" fields
 
 **POSITION VALIDATION**: Before adding any comment, verify:
-1. The position number corresponds to an actual line in the patch
+1. The position number corresponds to an actual line in the PATCH (not file)
 2. The position is counting correctly from 1 after the @@ header  
 3. You're commenting on a "+" line (new code) that actually has a problem
-4. SAFETY CHECK: If position calculation seems wrong, return empty comments array instead
+4. DOUBLE-CHECK: Position should be small numbers (1-10 usually), not large file line numbers
+5. SAFETY CHECK: If position calculation seems wrong, return empty comments array instead
 
 ===== EXAMPLES =====
+
+**GOOD POSITION CALCULATION:**
+Looking at patch:
+@@ -18,3 +18,4 @@ jobs:
+         with:                    <- Position 1
+           token: \${{...}}       <- Position 2  
+           apiKey: \${{...}}      <- Position 3
++          level: 'HIGH'          <- Position 4 (comment here)
+
+Result: position: 4 (correct!)
+
+**BAD POSITION CALCULATION:**
+Using file line numbers: position: 21 (WRONG! Causes API error)
 
 **GOOD COMMENT:**
 "The \`userId\` parameter isn't validated before the database query. This could allow SQL injection if \`userId\` comes from user input."
