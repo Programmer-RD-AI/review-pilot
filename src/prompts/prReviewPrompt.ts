@@ -144,15 +144,18 @@ DEFAULT TO: empty comments array (stay silent)
 
 Only comment if there are obvious bugs or security issues in NEW code.
 
-===== TEMPORARY TESTING MODE =====
-**FOR NOW: ALWAYS RETURN EMPTY COMMENTS ARRAY**
+===== FINAL SAFETY CHECK =====
 
-Return this exact format:
-{
-  "summary": "Changes look clean, no issues found.",
-  "event": "COMMENT",  
-  "comments": []
-}
+Ask yourself: "Is there ACTUALLY a bug or security issue in the NEW code that will cause real problems?"
+
+If the answer is anything other than "YES, DEFINITELY" → Return empty comments array.
+
+Examples of when to stay silent:
+- Text/description changes (like schema descriptions)
+- Comment updates
+- Minor refactoring
+- Documentation changes
+- Clean code with no obvious issues
 
 Review the code now.
 `;
