@@ -34324,16 +34324,25 @@ You MUST respond with a structured JSON object containing exactly these fields:
 
 1. "summary": A concise executive summary (2-3 sentences) covering what functionality changed, overall code quality assessment, and key risks or concerns identified.
 
-2. "reviewComments": Array of detailed review items. Each comment object must contain:
-   - "body": Your detailed technical feedback, suggestions, or concerns for this specific issue
-   - "path": The exact file path where the issue exists (example: "src/utils/auth.ts")
-   - "line": The line number in the file where the comment applies.
+2. "singleCommentThreads": Array of single-line review comments. Each comment object must contain:
+   - "body": Your detailed technical feedback.
+   - "path": The exact file path.
+   - "position": The line index within the diff hunk where the comment applies.
+
+3. "multiLineThreads": Array of multi-line/threaded review comments. Each comment object must contain:
+   - "body": Your detailed technical feedback.
+   - "path": The exact file path.
+   - "line": The end line number of the comment range.
+   - "startLine": The start line number of the comment range.
+   - "side": "RIGHT"
+   - "startSide": "RIGHT"
 
 CRITICAL DIFF INTERPRETATION RULES:
 - Lines prefixed with "+" are NEW code (RIGHT side) - these are your primary targets for comments
 - Lines prefixed with "-" are DELETED code (LEFT side) - rarely comment directly on these
 - Diff headers show line ranges and look like this: \`@@ -old_start,old_count +new_start,new_count @@\`
-- The "line" field is the line number in the file. The position should be calculated relative to the start of the diff hunk.
+- For single-line comments, "position" is the line's index within the diff. The first line after a diff header is position 1.
+- For multi-line comments, "line" and "startLine" are the line numbers in the file.
 
 COMPREHENSIVE REVIEW CRITERIA:
 
@@ -35945,9 +35954,9 @@ const ReviewCommentsSchema = {
             type: SchemaType.STRING,
             description: 'A concise overall summary of the review',
         },
-        reviewComments: {
+        singleCommentThreads: {
             type: SchemaType.ARRAY,
-            description: 'List of individual review comments',
+            description: 'List of individual single-line review comments',
             items: {
                 type: SchemaType.OBJECT,
                 description: 'A single review comment item',
@@ -35960,21 +35969,84 @@ const ReviewCommentsSchema = {
                         type: SchemaType.STRING,
                         description: 'File path related to the comment',
                     },
-                    line: {
+                    position: {
                         type: SchemaType.NUMBER,
-                        description: 'Line number in the file where the comment applies',
+                        description: 'Line number in the diff where the comment applies',
                     },
                 },
-                required: ['body', 'path', 'line'],
+                required: ['body', 'path', 'position'],
+            },
+        },
+        multiLineThreads: {
+            type: SchemaType.ARRAY,
+            description: 'List of individual multi-line review comments',
+            items: {
+                type: SchemaType.OBJECT,
+                description: 'A single multi-line review comment item',
+                properties: {
+                    body: {
+                        type: SchemaType.STRING,
+                        description: 'Detailed feedback or suggestion',
+                    },
+                    path: {
+                        type: SchemaType.STRING,
+                        description: 'File path related to the comment',
+                    },
+                    line: {
+                        type: SchemaType.NUMBER,
+                        description: 'The end line number in the file for the comment.',
+                    },
+                    startLine: {
+                        type: SchemaType.NUMBER,
+                        description: 'The start line number for multi-line comments.',
+                    },
+                    side: {
+                        type: SchemaType.STRING,
+                        description: 'The side of the diff to comment on.',
+                    },
+                    startSide: {
+                        type: SchemaType.STRING,
+                        description: 'The side of the diff to start a multi-line comment on.',
+                    },
+                },
+                required: ['body', 'path', 'line', 'startLine', 'side', 'startSide'],
             },
         },
     },
-    required: ['reviewComments', 'summary'],
+    required: ['summary', 'singleCommentThreads', 'multiLineThreads'],
 };
 
 
+// EXTERNAL MODULE: ./node_modules/@octokit/graphql/dist-node/index.js
+var dist_node = __nccwpck_require__(7);
+;// CONCATENATED MODULE: ./src/graphql.ts
+
+const createReview = async (token, prNodeId, summary, singleCommentThread, multiLineThreads) => {
+    await (0,dist_node.graphql)(`
+      mutation CreateReview($input: CreatePullRequestReviewInput!) {
+        createPullRequestReview(input: $input) {
+          pullRequestReview {
+            url
+          }
+        }
+      }
+    `, {
+        input: {
+            pullRequestId: prNodeId,
+            body: summary,
+            event: 'COMMENT',
+            threads: [...singleCommentThread, ...multiLineThreads],
+        },
+        headers: {
+            authorization: `token ${token}`,
+        },
+    });
+};
+/* harmony default export */ const graphql = (createReview);
+
 ;// CONCATENATED MODULE: ./src/index.ts
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
 
 
 
@@ -35994,9 +36066,7 @@ async function run() {
             core.setFailed('This action must run on pull_request events');
             return;
         }
-        const prNumber = context.payload.pull_request.number;
-        const repo = context.repo;
-        const commitId = context.payload.pull_request['head'].sha;
+        const prNodeId = context.payload.pull_request['node_id'];
         if (customInstructionUri && customInstructionUri.endsWith('.txt')) {
             // TODO: add a warning when the user provides a customInstructionUri yet it is not of type .txt
             customInstructions = await fetchFile(customInstructionUri);
@@ -36010,18 +36080,7 @@ async function run() {
         core.debug(rawResponse);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const response = JSON.parse(rawResponse);
-        await octokit.rest.pulls.createReview({
-            owner: repo.owner,
-            repo: repo.repo,
-            pull_number: prNumber,
-            commit_id: commitId,
-            body: response.summary,
-            event: 'COMMENT',
-            comments: response.reviewComments.map((comment) => ({
-                ...comment,
-                position: comment.line,
-            })),
-        });
+        await graphql(token, prNodeId, response.summary, response.singleCommentThreads, response.multiLineThreads);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }
     catch (error) {

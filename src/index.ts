@@ -7,6 +7,7 @@ import type { FileChange, ReviewComments } from './types.js';
 import getPRReviewPrompt from './prompts.js';
 import { gemini } from './clients/index.js';
 import { ReviewCommentsSchema } from './schemas/gemini.js';
+import createReview from './graphql.js';
 
 async function run(): Promise<void> {
   try {
@@ -21,9 +22,7 @@ async function run(): Promise<void> {
       core.setFailed('This action must run on pull_request events');
       return;
     }
-    const prNumber = context.payload.pull_request.number;
-    const repo = context.repo;
-    const commitId = context.payload.pull_request['head'].sha;
+    const prNodeId = context.payload.pull_request['node_id'];
     if (customInstructionUri && customInstructionUri.endsWith('.txt')) {
       // TODO: add a warning when the user provides a customInstructionUri yet it is not of type .txt
       customInstructions = await fetchFile(customInstructionUri);
@@ -42,18 +41,13 @@ async function run(): Promise<void> {
     core.debug(rawResponse);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const response: ReviewComments = JSON.parse(rawResponse);
-    await octokit.rest.pulls.createReview({
-      owner: repo.owner,
-      repo: repo.repo,
-      pull_number: prNumber,
-      commit_id: commitId,
-      body: response.summary,
-      event: 'COMMENT',
-      comments: response.reviewComments.map((comment) => ({
-        ...comment,
-        position: comment.line,
-      })),
-    });
+    await createReview(
+      token,
+      prNodeId,
+      response.summary,
+      response.singleCommentThreads,
+      response.multiLineThreads,
+    );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: unknown) {
     core.setFailed((error as { message: string }).message);

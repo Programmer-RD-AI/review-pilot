@@ -17,16 +17,25 @@ You MUST respond with a structured JSON object containing exactly these fields:
 
 1. "summary": A concise executive summary (2-3 sentences) covering what functionality changed, overall code quality assessment, and key risks or concerns identified.
 
-2. "reviewComments": Array of detailed review items. Each comment object must contain:
-   - "body": Your detailed technical feedback, suggestions, or concerns for this specific issue
-   - "path": The exact file path where the issue exists (example: "src/utils/auth.ts")
-   - "line": The line number in the file where the comment applies.
+2. "singleCommentThreads": Array of single-line review comments. Each comment object must contain:
+   - "body": Your detailed technical feedback.
+   - "path": The exact file path.
+   - "position": The line index within the diff hunk where the comment applies.
+
+3. "multiLineThreads": Array of multi-line/threaded review comments. Each comment object must contain:
+   - "body": Your detailed technical feedback.
+   - "path": The exact file path.
+   - "line": The end line number of the comment range.
+   - "startLine": The start line number of the comment range.
+   - "side": "RIGHT"
+   - "startSide": "RIGHT"
 
 CRITICAL DIFF INTERPRETATION RULES:
 - Lines prefixed with "+" are NEW code (RIGHT side) - these are your primary targets for comments
 - Lines prefixed with "-" are DELETED code (LEFT side) - rarely comment directly on these
 - Diff headers show line ranges and look like this: \`@@ -old_start,old_count +new_start,new_count @@\`
-- The "line" field is the line number in the file. The position should be calculated relative to the start of the diff hunk.
+- For single-line comments, "position" is the line's index within the diff. The first line after a diff header is position 1.
+- For multi-line comments, "line" and "startLine" are the line numbers in the file.
 
 COMPREHENSIVE REVIEW CRITERIA:
 
