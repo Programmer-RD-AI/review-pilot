@@ -119,6 +119,31 @@ Return valid JSON only with these fields:
 - If you can't calculate the correct position, don't comment
 - If the code looks fine, return empty comments array
 
+===== EMERGENCY POSITION SAFETY =====
+
+**BEFORE COMMENTING, ASK YOURSELF:**
+1. Can I see the exact patch with @@ headers?
+2. Can I count line by line from 1 after the @@ header?
+3. Am I 100% sure this position number is correct?
+4. Is this line actually a "+" (added) line with a real problem?
+
+**IF ANY ANSWER IS NO: Return empty comments array!**
+
+**WHEN IN DOUBT: STAY SILENT**
+Better to provide no comments than crash the API with invalid positions.
+
+===== DEFAULT BEHAVIOR =====
+For simple changes like:
+- Description text updates
+- Comment changes  
+- Documentation updates
+- Minor refactoring
+- Schema description changes
+
+DEFAULT TO: empty comments array (stay silent)
+
+Only comment if there are obvious bugs or security issues in NEW code.
+
 Review the code now.
 `;
 };
