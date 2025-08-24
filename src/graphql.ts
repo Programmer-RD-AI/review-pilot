@@ -1,15 +1,15 @@
 import { graphql } from '@octokit/graphql';
+import type { ReviewComment } from './types.js';
 const createReview = async (
   token: string,
   prNodeId: string,
   summary: string,
-  singleCommentThread: Array<Record<string, any>>,
-  multiLineThreads: Array<Record<string, any>>,
+  comments: Array<ReviewComment>,
 ) => {
   await graphql(
     `
-      mutation CreateReview($input: CreatePullRequestReviewInput!) {
-        createPullRequestReview(input: $input) {
+      mutation AddReview($input: AddPullRequestReviewInput!) {
+        addPullRequestReview(input: $input) {
           pullRequestReview {
             url
           }
@@ -21,7 +21,7 @@ const createReview = async (
         pullRequestId: prNodeId,
         body: summary,
         event: 'COMMENT',
-        threads: [...singleCommentThread, ...multiLineThreads],
+        comments: comments,
       },
       headers: {
         authorization: `token ${token}`,

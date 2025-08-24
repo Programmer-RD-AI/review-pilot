@@ -1,22 +1,12 @@
-type singleCommentThread = {
+type ReviewComment = {
   path: string;
   position: number;
   body: string;
 };
 
-type multiLineThread = {
-  path: string;
-  line: number;
-  startLine?: number;
-  side?: 'LEFT' | 'RIGHT';
-  startSide?: 'LEFT' | 'RIGHT';
-  body: string;
-};
-
 type ReviewComments = {
   summary: string;
-  singleCommentThreads: Array<singleCommentThread>;
-  multiLineThreads: Array<multiLineThread>;
+  comments: Array<ReviewComment>;
 };
 enum FileStatus {
   ADDED = 'added',
@@ -35,5 +25,5 @@ type FileChange = {
   changes: number;
   diff: string | undefined;
 };
-export type { ReviewComments, singleCommentThread, multiLineThread, FileChange };
+export type { ReviewComments, ReviewComment, FileChange };
 export { FileStatus };

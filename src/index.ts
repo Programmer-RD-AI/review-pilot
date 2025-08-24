@@ -41,13 +41,7 @@ async function run(): Promise<void> {
     core.debug(rawResponse);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const response: ReviewComments = JSON.parse(rawResponse);
-    await createReview(
-      token,
-      prNodeId,
-      response.summary,
-      response.singleCommentThreads,
-      response.multiLineThreads,
-    );
+    await createReview(token, prNodeId as string, response.summary, response.comments);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: unknown) {
     core.setFailed((error as { message: string }).message);
