@@ -1,4 +1,4 @@
-export declare const gemini: {
+export declare const geminiClient: {
     getClient: (apiKey: string) => import("@google/generative-ai").GoogleGenerativeAI;
     getModel: (modelName: string, geminiClient: import("@google/generative-ai").GoogleGenerativeAI) => import("@google/generative-ai").GenerativeModel;
     generateResponse: (model: import("@google/generative-ai").GenerativeModel, prompt: string, schema: Record<string, any>) => Promise<string>;

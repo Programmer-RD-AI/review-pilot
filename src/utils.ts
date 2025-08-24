@@ -1,38 +1,13 @@
 import * as github from '@actions/github';
-import type { Context } from '@actions/github/lib/context.js';
-import type { GitHub } from '@actions/github/lib/utils.js';
-import type { FileChange } from './types.js';
-import { FileStatus } from './types.js';
 import { Template } from '@huggingface/jinja';
+import { SUPPORTED_CUSTOM_INSTRUCTIONS_FILE_TYPES } from './constants.js';
+import type { CustomContext } from './types.js';
 
-const populatePromptTemplate = (prompt: string, context: Record<string, string | null>): string => {
+const populatePromptTemplate = (
+  prompt: string,
+  context: Record<string, string | undefined>,
+): string => {
   return new Template(prompt).render(context).trim();
-};
-
-const getPRDiff = async (
-  octokitClient: InstanceType<typeof GitHub>,
-  repoOwner: string,
-  repo: string,
-  pullNumber: number,
-): Promise<Array<FileChange>> => {
-  const files = await octokitClient.rest.pulls.listFiles({
-    repo,
-    pull_number: pullNumber,
-    owner: repoOwner,
-  });
-  const fileChanges: FileChange[] = Array<FileChange>();
-  for (const file of files.data) {
-    const fileChange: FileChange = {
-      fileName: file.filename,
-      status: FileStatus[file.status as keyof typeof FileStatus],
-      additions: file.additions,
-      deletions: file.deletions,
-      changes: file.changes,
-      diff: file.patch,
-    };
-    fileChanges.push(fileChange);
-  }
-  return fileChanges;
 };
 
 const fetchFile = async (url: string): Promise<string> => {
@@ -46,10 +21,25 @@ const fetchFile = async (url: string): Promise<string> => {
   return text;
 };
 
-const getGithubContext = (): Context => {
-  // TODO: return custom type with the only required parts from context
+const getGithubContext = (): CustomContext => {
   const { context } = github;
-  return context;
+  const pr = context.payload.pull_request;
+  if (!pr) {
+    throw Error('This action must run on pull_request events');
+  }
+  return {
+    prNodeId: pr['node_id'] as string,
+    prDescription: pr.body ?? '',
+    repoOwner: context.repo.owner,
+    repo: context.repo.repo,
+    prNumber: pr.number,
+  };
 };
 
-export { getPRDiff, getGithubContext, fetchFile, populatePromptTemplate };
+function isAllowedFileType(filename: string): boolean {
+  return SUPPORTED_CUSTOM_INSTRUCTIONS_FILE_TYPES.some((ext) =>
+    filename.toLowerCase().endsWith(ext),
+  );
+}
+
+export { getGithubContext, fetchFile, populatePromptTemplate, isAllowedFileType };

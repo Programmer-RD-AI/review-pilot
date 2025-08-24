@@ -31694,19 +31694,6 @@ var __webpack_exports__ = {};
 var core = __nccwpck_require__(7484);
 // EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
 var github = __nccwpck_require__(3228);
-;// CONCATENATED MODULE: ./src/types.ts
-var FileStatus;
-(function (FileStatus) {
-    FileStatus["ADDED"] = "added";
-    FileStatus["REMOVED"] = "removed";
-    FileStatus["MODIFIED"] = "modified";
-    FileStatus["RENAMED"] = "renamed";
-    FileStatus["COPIED"] = "copied";
-    FileStatus["CHANGED"] = "changed";
-    FileStatus["UNCHANGED"] = "unchanged";
-})(FileStatus || (FileStatus = {}));
-
-
 ;// CONCATENATED MODULE: ./node_modules/@huggingface/jinja/dist/index.js
 // src/lexer.ts
 var TOKEN_TYPES = Object.freeze({
@@ -34267,32 +34254,40 @@ var Template = class {
 };
 
 
+;// CONCATENATED MODULE: ./src/constants.ts
+const SUPPORTED_CUSTOM_INSTRUCTIONS_FILE_TYPES = [
+    '.txt',
+    '.json',
+    '.csv',
+    '.tsv',
+    '.html',
+    '.xml',
+    '.md',
+    '.yaml',
+    '.yml',
+    '.ini',
+    '.conf',
+    '.env',
+    '.css',
+    '.js',
+    '.ts',
+    '.tsx',
+    '.py',
+    '.go',
+    '.rs',
+    '.java',
+    '.c',
+    '.cpp',
+    '.log',
+];
+
+
 ;// CONCATENATED MODULE: ./src/utils.ts
 
 
 
 const populatePromptTemplate = (prompt, context) => {
     return new Template(prompt).render(context).trim();
-};
-const getPRDiff = async (octokitClient, repoOwner, repo, pullNumber) => {
-    const files = await octokitClient.rest.pulls.listFiles({
-        repo,
-        pull_number: pullNumber,
-        owner: repoOwner,
-    });
-    const fileChanges = Array();
-    for (const file of files.data) {
-        const fileChange = {
-            fileName: file.filename,
-            status: FileStatus[file.status],
-            additions: file.additions,
-            deletions: file.deletions,
-            changes: file.changes,
-            diff: file.patch,
-        };
-        fileChanges.push(fileChange);
-    }
-    return fileChanges;
 };
 const fetchFile = async (url) => {
     const response = await fetch(url);
@@ -34303,10 +34298,22 @@ const fetchFile = async (url) => {
     return text;
 };
 const getGithubContext = () => {
-    // TODO: return custom type with the only required parts from context
     const { context } = github;
-    return context;
+    const pr = context.payload.pull_request;
+    if (!pr) {
+        throw Error('This action must run on pull_request events');
+    }
+    return {
+        prNodeId: pr['node_id'],
+        prDescription: pr.body ?? '',
+        repoOwner: context.repo.owner,
+        repo: context.repo.repo,
+        prNumber: pr.number,
+    };
 };
+function isAllowedFileType(filename) {
+    return SUPPORTED_CUSTOM_INSTRUCTIONS_FILE_TYPES.some((ext) => filename.toLowerCase().endsWith(ext));
+}
 
 
 ;// CONCATENATED MODULE: ./node_modules/@google/generative-ai/dist/index.mjs
@@ -35831,73 +35838,39 @@ class GoogleGenerativeAI {
 
 //# sourceMappingURL=index.mjs.map
 
-;// CONCATENATED MODULE: ./src/clients/gemini.ts
-
-const getClient = (apiKey) => {
-    return new GoogleGenerativeAI(apiKey);
-};
-const getModel = (modelName, geminiClient) => {
-    return geminiClient.getGenerativeModel({ model: modelName });
-};
-const generateResponse = async (model, prompt, schema) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const generativeContent = getGenerativeContentRequest(prompt, schema);
-    const result = await model.generateContent(generativeContent);
-    return result.response.text();
-};
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const getGenerativeContentRequest = (prompt, schema) => {
-    return {
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: {
-            responseMimeType: 'application/json',
-            responseSchema: schema,
-        },
-    };
-};
-
-
-;// CONCATENATED MODULE: ./src/clients/index.ts
-
-const gemini = {
-    getClient: getClient,
-    getModel: getModel,
-    generateResponse: generateResponse,
-};
-
 ;// CONCATENATED MODULE: ./src/schemas/gemini.ts
 
 const ReviewCommentsSchema = {
-    description: 'Structured review comments with an overall summary',
+    description: 'Structured code review output from a legendary senior engineer who only flags real problems that matter in production',
     type: SchemaType.OBJECT,
     properties: {
         summary: {
             type: SchemaType.STRING,
-            description: 'A concise overall summary of the review',
+            description: 'Human-like assessment of the code changes in 1-2 sentences. Use casual but professional language like "Solid work, no red flags here" or describe actual concerns found.',
         },
         event: {
             type: SchemaType.STRING,
-            description: 'The review event type. "COMMENT" for suggestions, "REQUEST_CHANGES" for critical issues.',
+            description: 'Review decision based on issue severity: "REQUEST_CHANGES" for critical issues that will break production, cause security vulnerabilities, or create major problems. "COMMENT" for suggestions and improvements.',
             enum: ['COMMENT', 'REQUEST_CHANGES'],
         },
         comments: {
             type: SchemaType.ARRAY,
-            description: 'List of individual review comments',
+            description: 'Array of specific code review issues. Only include comments for genuine problems that will cause production pain, security risks, performance disasters, or maintenance nightmares. Skip style nitpicks and subjective preferences.',
             items: {
                 type: SchemaType.OBJECT,
-                description: 'A single review comment item',
+                description: 'Individual review comment targeting a specific issue in the code',
                 properties: {
                     body: {
                         type: SchemaType.STRING,
-                        description: 'Detailed feedback or suggestion',
+                        description: 'Detailed explanation written like mentoring a respected colleague. Include: what the problem is, why it matters in production, real-world impact, and concrete solution with ```suggestion code blocks. Reference specific lines and explain the underlying issue.',
                     },
                     path: {
                         type: SchemaType.STRING,
-                        description: 'File path related to the comment',
+                        description: 'Exact file path from the diff where the issue exists (e.g., "src/components/UserAuth.tsx")',
                     },
                     position: {
                         type: SchemaType.NUMBER,
-                        description: 'Line number in the diff where the comment applies',
+                        description: 'Line position within the diff hunk where the comment applies. Count starts at 1 immediately after the @@ header line. This should target the specific problematic line in the new code.',
                     },
                 },
                 required: ['body', 'path', 'position'],
@@ -35910,10 +35883,9 @@ const ReviewCommentsSchema = {
 
 // EXTERNAL MODULE: ./node_modules/@octokit/graphql/dist-node/index.js
 var dist_node = __nccwpck_require__(7);
-;// CONCATENATED MODULE: ./src/api/prReview.ts
-
-const createReview = async (token, prNodeId, summary, event, comments) => {
-    await (0,dist_node.graphql)(`
+;// CONCATENATED MODULE: ./src/api/queries.ts
+const addPullRequestReviewQuery = () => {
+    return `
       mutation AddReview($input: AddPullRequestReviewInput!) {
         addPullRequestReview(input: $input) {
           pullRequestReview {
@@ -35921,7 +35893,15 @@ const createReview = async (token, prNodeId, summary, event, comments) => {
           }
         }
       }
-    `, {
+    `;
+};
+
+
+;// CONCATENATED MODULE: ./src/api/prReview.ts
+
+
+const createReview = async (token, prNodeId, summary, event, comments) => {
+    await (0,dist_node.graphql)(addPullRequestReviewQuery(), {
         input: {
             pullRequestId: prNodeId,
             body: summary,
@@ -35944,6 +35924,11 @@ You don't comment on everything - that's what junior reviewers do. You laser-foc
 
 MISSION: Review this code like your production environment depends on it (because it does). Only flag real problems that will cause pain. Skip the bikeshedding and focus on what matters.
 
+REVIEW STRICTNESS: {{ level }}
+- LOW: Only flag critical issues that will cause production failures, security vulnerabilities, or major performance degradation.
+- MID: Flag critical issues and important suggestions that improve code quality, maintainability, and robustness.
+- HIGH: Flag everything from critical issues to minor nitpicks, including style, naming, and best practice suggestions.
+
 PULL REQUEST INTEL:
 Title: {{ pr_title }}
 Description: {{ pr_description | default("No description provided.") }}
@@ -35954,7 +35939,8 @@ CODEBASE CONTEXT:
 
 CONVERSATION HISTORY:
 Previous Discussion: {{ existing_comments | default("Clean slate - first review.") }}
-Existing Reviews: {{ existing_review_comments | default("No prior inline feedback.") }}
+Previous Reviews: {{ existing_reviews | default("No prior reviews.") }}
+Existing Inline Comments: {{ existing_review_comments | default("No prior inline feedback.") }}
 
 THE DIFF:
 {{ files_changed }}
@@ -36046,8 +36032,136 @@ Remember: Your job isn't to write the code for them. It's to catch the landmines
 };
 /* harmony default export */ const prReviewPrompt = (getPrReviewBasePrompt);
 
+;// CONCATENATED MODULE: ./src/config.ts
+
+
+
+const getConfig = async () => {
+    const token = core.getInput('token', { required: true });
+    const customInstructionsUri = core.getInput('customInstructionUri');
+    let customInstructions;
+    if (customInstructionsUri) {
+        if (isAllowedFileType(customInstructionsUri)) {
+            core.warning(`File "${customInstructionsUri}" is not in the allowed list. Allowed extensions are: ${SUPPORTED_CUSTOM_INSTRUCTIONS_FILE_TYPES.join(', ')}`);
+            customInstructions = await fetchFile(customInstructionsUri);
+        }
+    }
+    const apiKey = core.getInput('apiKey', { required: true });
+    const model = core.getInput('model');
+    const level = core.getInput('level');
+    const maxChanges = parseInt(core.getInput('maxChanges'));
+    return {
+        token,
+        customInstructions,
+        apiKey,
+        model,
+        level,
+        maxChanges,
+    };
+};
+
+
+;// CONCATENATED MODULE: ./src/types.ts
+var FileStatus;
+(function (FileStatus) {
+    FileStatus["ADDED"] = "added";
+    FileStatus["REMOVED"] = "removed";
+    FileStatus["MODIFIED"] = "modified";
+    FileStatus["RENAMED"] = "renamed";
+    FileStatus["COPIED"] = "copied";
+    FileStatus["CHANGED"] = "changed";
+    FileStatus["UNCHANGED"] = "unchanged";
+})(FileStatus || (FileStatus = {}));
+
+
+;// CONCATENATED MODULE: ./src/data.ts
+
+const getFileChanges = async (octokitClient, context, config) => {
+    const files = await octokitClient.rest.pulls.listFiles({
+        repo: context.repo,
+        pull_number: context.prNumber,
+        owner: context.repoOwner,
+    });
+    const fileChanges = Array();
+    for (const file of files.data) {
+        if (file.changes > config.maxChanges) {
+            continue;
+        }
+        const fileChange = {
+            fileName: file.filename,
+            status: FileStatus[file.status],
+            additions: file.additions,
+            deletions: file.deletions,
+            changes: file.changes,
+            diff: file.patch,
+        };
+        fileChanges.push(fileChange);
+    }
+    return JSON.stringify(fileChanges);
+};
+const getPRInteractions = async (octokitClient, context) => {
+    const existingCommentsData = await octokitClient.rest.issues.listComments({
+        owner: context.repoOwner,
+        repo: context.repo,
+        issue_number: context.prNumber,
+    });
+    const existingReviewCommentsData = await octokitClient.rest.pulls.listReviewComments({
+        owner: context.repoOwner,
+        repo: context.repo,
+        pull_number: context.prNumber,
+    });
+    const existingReviewData = await octokitClient.rest.pulls.listReviews({
+        owner: context.repoOwner,
+        repo: context.repo,
+        pull_number: context.prNumber,
+    });
+    return [
+        JSON.stringify(existingCommentsData),
+        JSON.stringify(existingReviewCommentsData),
+        JSON.stringify(existingReviewData),
+    ];
+};
+
+
+;// CONCATENATED MODULE: ./src/clients/gemini.ts
+
+const getClient = (apiKey) => {
+    return new GoogleGenerativeAI(apiKey);
+};
+const getModel = (modelName, geminiClient) => {
+    return geminiClient.getGenerativeModel({ model: modelName });
+};
+const generateResponse = async (model, prompt, 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+schema) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const generativeContent = getGenerativeContentRequest(prompt, schema);
+    const result = await model.generateContent(generativeContent);
+    return result.response.text();
+};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const getGenerativeContentRequest = (prompt, schema) => {
+    return {
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+            responseMimeType: 'application/json',
+            responseSchema: schema,
+        },
+    };
+};
+
+
+;// CONCATENATED MODULE: ./src/clients/index.ts
+
+const geminiClient = {
+    getClient: getClient,
+    getModel: getModel,
+    generateResponse: generateResponse,
+};
+
 ;// CONCATENATED MODULE: ./src/index.ts
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
+
 
 
 
@@ -36057,66 +36171,33 @@ Remember: Your job isn't to write the code for them. It's to catch the landmines
 
 async function run() {
     try {
-        const token = core.getInput('token', { required: true });
-        const customInstructionUri = core.getInput('customInstructionUri');
-        const apiKey = core.getInput('apiKey', { required: true });
-        const model = core.getInput('model');
-        const octokit = github.getOctokit(token);
-        let customInstructions = null;
-        const context = getGithubContext();
-        const pr = context.payload.pull_request;
-        if (!pr) {
+        const config = await getConfig();
+        const octokit = github.getOctokit(config.token);
+        let context;
+        try {
+            context = getGithubContext();
+        }
+        catch {
             core.setFailed('This action must run on pull_request events');
             return;
         }
-        const prNodeId = pr['node_id'];
-        // PR metadata
-        const prDescription = pr.body ?? '';
-        // Existing comments (conversation)
-        const { data: existingCommentsData } = await octokit.rest.issues.listComments({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: pr.number,
-        });
-        const existingComments = existingCommentsData.map((c) => ({
-            author: c.user?.login,
-            body: c.body,
-        }));
-        // Existing review comments (inline)
-        const { data: existingReviewCommentsData } = await octokit.rest.pulls.listReviewComments({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            pull_number: pr.number,
-        });
-        const existingReviewComments = existingReviewCommentsData.map((c) => ({
-            author: c.user?.login,
-            body: c.body,
-            path: c.path,
-            line: c.line,
-        }));
-        if (customInstructionUri && customInstructionUri.endsWith('.txt')) {
-            // TODO: add a warning when the user provides a customInstructionUri yet it is not of type .txt
-            customInstructions = await fetchFile(customInstructionUri);
-        }
-        const filesChanged = await getPRDiff(octokit, context.repo.owner, context.repo.repo, pr.number);
-        const filesChangedStr = JSON.stringify(filesChanged);
-        core.info(JSON.stringify(existingComments));
-        core.info(JSON.stringify(existingReviewComments));
+        const fileChanges = await getFileChanges(octokit, context, config);
+        const [existingComments, existingReviewComments, existingReviews] = await getPRInteractions(octokit, context);
         const prompt = populatePromptTemplate(prReviewPrompt(), {
-            custom_instructions: customInstructions,
-            files_changed: filesChangedStr,
-            pr_description: prDescription,
-            existing_comments: JSON.stringify(existingComments),
-            existing_review_comments: JSON.stringify(existingReviewComments),
+            custom_instructions: config.customInstructions,
+            files_changed: fileChanges,
+            pr_description: context.prDescription,
+            existing_reviews: existingReviews,
+            existing_comments: existingComments,
+            existing_review_comments: existingReviewComments,
+            level: config.level,
         });
-        const geminiClient = gemini.getClient(apiKey);
-        const geminiModel = gemini.getModel(model, geminiClient);
-        const rawResponse = await gemini.generateResponse(geminiModel, prompt, ReviewCommentsSchema);
-        core.info(rawResponse);
+        const client = geminiClient.getClient(config.apiKey);
+        const geminiModel = geminiClient.getModel(config.model, client);
+        const rawResponse = await geminiClient.generateResponse(geminiModel, prompt, ReviewCommentsSchema);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const response = JSON.parse(rawResponse);
-        await prReview(token, prNodeId, response.summary, response.event, response.comments);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await prReview(config.token, context.prNodeId, response.summary, response.event, response.comments);
     }
     catch (error) {
         core.setFailed(error.message);

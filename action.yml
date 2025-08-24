@@ -15,6 +15,14 @@ inputs:
   customInstructionUri:
     description: 'Optional custom instructions to fine-tune the review process. You can provide a string or the path to a .txt file containing specific guidelines or requirements. If a .txt file is provided, its contents will be used to guide the AI reviewer.'
     required: false
+  level:
+    description: 'The strictness level of the review. LOW for critical issues, MID for balanced feedback, HIGH for nit-picking.'
+    required: false
+    default: 'MID'
+  maxChanges:
+    description: 'The maximum number of changes in a file to be considered for review.'
+    required: false
+    default: '1000'
 runs:
   using: 'node20'
   main: 'dist/index.js'

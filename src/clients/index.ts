@@ -1,6 +1,6 @@
 import { generateResponse, getClient, getModel } from './gemini.js';
 
-export const gemini = {
+export const geminiClient = {
   getClient,
   getModel,
   generateResponse,

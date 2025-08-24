@@ -11,9 +11,11 @@ const getClient = (apiKey: string): GoogleGenerativeAI => {
 const getModel = (modelName: string, geminiClient: GoogleGenerativeAI): GenerativeModel => {
   return geminiClient.getGenerativeModel({ model: modelName });
 };
+
 const generateResponse = async (
   model: GenerativeModel,
   prompt: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   schema: Record<string, any>,
 ): Promise<string> => {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

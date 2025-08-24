@@ -1,4 +1,4 @@
-export declare const gemini: {
+export declare const geminiSchemas: {
     ReviewCommentsSchema: {
         description: string;
         type: import("@google/generative-ai").SchemaType;

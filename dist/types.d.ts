@@ -5,9 +5,10 @@ type ReviewComment = {
 };
 type ReviewComments = {
     summary: string;
-    event: 'COMMENT' | 'REQUEST_CHANGES';
+    event: ReviewEventTypes;
     comments: Array<ReviewComment>;
 };
+type ReviewEventTypes = 'COMMENT' | 'REQUEST_CHANGES';
 declare enum FileStatus {
     ADDED = "added",
     REMOVED = "removed",
@@ -17,6 +18,15 @@ declare enum FileStatus {
     CHANGED = "changed",
     UNCHANGED = "unchanged"
 }
+type ReviewLevel = 'LOW' | 'MID' | 'HIGH';
+type Config = {
+    token: string;
+    customInstructions: string | undefined;
+    apiKey: string;
+    model: string;
+    level: ReviewLevel;
+    maxChanges: number;
+};
 type FileChange = {
     fileName: string;
     status: FileStatus;
@@ -25,5 +35,12 @@ type FileChange = {
     changes: number;
     diff: string | undefined;
 };
-export type { ReviewComments, ReviewComment, FileChange };
+type CustomContext = {
+    prNodeId: string;
+    prDescription: string;
+    repoOwner: string;
+    repo: string;
+    prNumber: number;
+};
+export type { ReviewComments, ReviewComment, FileChange, Config, ReviewLevel, CustomContext, ReviewEventTypes, };
 export { FileStatus };
