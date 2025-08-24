@@ -7,7 +7,7 @@ declare const ReviewCommentsSchema: {
             type: SchemaType;
             description: string;
         };
-        singleCommentThreads: {
+        comments: {
             type: SchemaType;
             description: string;
             items: {
@@ -23,41 +23,6 @@ declare const ReviewCommentsSchema: {
                         description: string;
                     };
                     position: {
-                        type: SchemaType;
-                        description: string;
-                    };
-                };
-                required: string[];
-            };
-        };
-        multiLineThreads: {
-            type: SchemaType;
-            description: string;
-            items: {
-                type: SchemaType;
-                description: string;
-                properties: {
-                    body: {
-                        type: SchemaType;
-                        description: string;
-                    };
-                    path: {
-                        type: SchemaType;
-                        description: string;
-                    };
-                    line: {
-                        type: SchemaType;
-                        description: string;
-                    };
-                    startLine: {
-                        type: SchemaType;
-                        description: string;
-                    };
-                    side: {
-                        type: SchemaType;
-                        description: string;
-                    };
-                    startSide: {
                         type: SchemaType;
                         description: string;
                     };

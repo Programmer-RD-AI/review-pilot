@@ -34324,25 +34324,16 @@ You MUST respond with a structured JSON object containing exactly these fields:
 
 1. "summary": A concise executive summary (2-3 sentences) covering what functionality changed, overall code quality assessment, and key risks or concerns identified.
 
-2. "singleCommentThreads": Array of single-line review comments. Each comment object must contain:
+2. "comments": Array of review comments. Each comment object must contain:
    - "body": Your detailed technical feedback.
    - "path": The exact file path.
    - "position": The line index within the diff hunk where the comment applies.
-
-3. "multiLineThreads": Array of multi-line/threaded review comments. Each comment object must contain:
-   - "body": Your detailed technical feedback.
-   - "path": The exact file path.
-   - "line": The end line number of the comment range.
-   - "startLine": The start line number of the comment range.
-   - "side": "RIGHT"
-   - "startSide": "RIGHT"
 
 CRITICAL DIFF INTERPRETATION RULES:
 - Lines prefixed with "+" are NEW code (RIGHT side) - these are your primary targets for comments
 - Lines prefixed with "-" are DELETED code (LEFT side) - rarely comment directly on these
 - Diff headers show line ranges and look like this: \`@@ -old_start,old_count +new_start,new_count @@\`
-- For single-line comments, "position" is the line's index within the diff. The first line after a diff header is position 1.
-- For multi-line comments, "line" and "startLine" are the line numbers in the file.
+- For comments, "position" is the line's index within the diff. The first line after a diff header is position 1.
 
 COMPREHENSIVE REVIEW CRITERIA:
 
@@ -35954,9 +35945,9 @@ const ReviewCommentsSchema = {
             type: SchemaType.STRING,
             description: 'A concise overall summary of the review',
         },
-        singleCommentThreads: {
+        comments: {
             type: SchemaType.ARRAY,
-            description: 'List of individual single-line review comments',
+            description: 'List of individual review comments',
             items: {
                 type: SchemaType.OBJECT,
                 description: 'A single review comment item',
@@ -35977,43 +35968,8 @@ const ReviewCommentsSchema = {
                 required: ['body', 'path', 'position'],
             },
         },
-        multiLineThreads: {
-            type: SchemaType.ARRAY,
-            description: 'List of individual multi-line review comments',
-            items: {
-                type: SchemaType.OBJECT,
-                description: 'A single multi-line review comment item',
-                properties: {
-                    body: {
-                        type: SchemaType.STRING,
-                        description: 'Detailed feedback or suggestion',
-                    },
-                    path: {
-                        type: SchemaType.STRING,
-                        description: 'File path related to the comment',
-                    },
-                    line: {
-                        type: SchemaType.NUMBER,
-                        description: 'The end line number in the file for the comment.',
-                    },
-                    startLine: {
-                        type: SchemaType.NUMBER,
-                        description: 'The start line number for multi-line comments.',
-                    },
-                    side: {
-                        type: SchemaType.STRING,
-                        description: 'The side of the diff to comment on.',
-                    },
-                    startSide: {
-                        type: SchemaType.STRING,
-                        description: 'The side of the diff to start a multi-line comment on.',
-                    },
-                },
-                required: ['body', 'path', 'line', 'startLine', 'side', 'startSide'],
-            },
-        },
     },
-    required: ['summary', 'singleCommentThreads', 'multiLineThreads'],
+    required: ['summary', 'comments'],
 };
 
 
@@ -36021,10 +35977,10 @@ const ReviewCommentsSchema = {
 var dist_node = __nccwpck_require__(7);
 ;// CONCATENATED MODULE: ./src/graphql.ts
 
-const createReview = async (token, prNodeId, summary, singleCommentThread, multiLineThreads) => {
+const createReview = async (token, prNodeId, summary, comments) => {
     await (0,dist_node.graphql)(`
-      mutation CreateReview($input: CreatePullRequestReviewInput!) {
-        createPullRequestReview(input: $input) {
+      mutation AddReview($input: AddPullRequestReviewInput!) {
+        addPullRequestReview(input: $input) {
           pullRequestReview {
             url
           }
@@ -36035,7 +35991,7 @@ const createReview = async (token, prNodeId, summary, singleCommentThread, multi
             pullRequestId: prNodeId,
             body: summary,
             event: 'COMMENT',
-            threads: [...singleCommentThread, ...multiLineThreads],
+            comments: comments,
         },
         headers: {
             authorization: `token ${token}`,
@@ -36080,7 +36036,7 @@ async function run() {
         core.debug(rawResponse);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const response = JSON.parse(rawResponse);
-        await graphql(token, prNodeId, response.summary, response.singleCommentThreads, response.multiLineThreads);
+        await graphql(token, prNodeId, response.summary, response.comments);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }
     catch (error) {
