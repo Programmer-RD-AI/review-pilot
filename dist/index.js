@@ -36267,11 +36267,16 @@ schema) => {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getGenerativeContentRequest = (prompt, schema) => {
     return {
+        contents: [
+            {
+                role: 'user',
+                parts: [{ text: prompt }],
+            },
+        ],
         generationConfig: {
             responseMimeType: 'application/json',
             responseSchema: schema,
         },
-        systemInstruction: prompt,
     };
 };
 

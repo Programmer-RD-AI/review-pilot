@@ -8,7 +8,7 @@ inputs:
   model:
     description: 'The AI model to use for reviewing pull requests.'
     required: false
-    default: 'gemini-2.0-flash-lite'
+    default: 'gemini-2.5-flash-lite'
   apiKey:
     description: 'API key used to authenticate requests to the Gemini API. Required for secure communication and must be kept confidential. Without a valid key, requests will be rejected.'
     required: true

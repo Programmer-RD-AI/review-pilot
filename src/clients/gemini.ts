@@ -51,11 +51,16 @@ const generateResponse = async (
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getGenerativeContentRequest = (prompt: string, schema: Record<string, any>): any => {
   return {
+    contents: [
+      {
+        role: 'user',
+        parts: [{ text: prompt }],
+      },
+    ],
     generationConfig: {
       responseMimeType: 'application/json',
       responseSchema: schema,
     },
-    systemInstruction: prompt,
   };
 };
 
