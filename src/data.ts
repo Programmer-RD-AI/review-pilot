@@ -1,3 +1,4 @@
+import * as core from '@actions/core';
 import type { GitHub } from '@actions/github/lib/utils.js';
 import type { Config, CustomContext, FileChange } from './types.js';
 import { FileStatus } from './types.js';
@@ -17,6 +18,7 @@ const getFileChanges = async (
     if (file.changes > config.maxChanges) {
       continue;
     }
+    core.info(JSON.stringify(file));
     const fileChange: FileChange = {
       fileName: file.filename,
       status: FileStatus[file.status as keyof typeof FileStatus],
@@ -44,7 +46,7 @@ const getFile = async (
       format: 'raw',
     },
   });
-  return fileContent.data as unknown as string;
+  return JSON.stringify(fileContent.data);
 };
 
 const getPRInteractions = async (

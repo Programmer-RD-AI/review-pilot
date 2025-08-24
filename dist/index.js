@@ -36074,6 +36074,7 @@ var FileStatus;
 
 ;// CONCATENATED MODULE: ./src/data.ts
 
+
 const getFileChanges = async (octokitClient, context, config) => {
     const files = await octokitClient.rest.pulls.listFiles({
         repo: context.repo,
@@ -36085,6 +36086,7 @@ const getFileChanges = async (octokitClient, context, config) => {
         if (file.changes > config.maxChanges) {
             continue;
         }
+        core.info(JSON.stringify(file));
         const fileChange = {
             fileName: file.filename,
             status: FileStatus[file.status],
@@ -36107,7 +36109,7 @@ const getFile = async (octokitClient, context, path) => {
             format: 'raw',
         },
     });
-    return fileContent.data;
+    return JSON.stringify(fileContent.data);
 };
 const getPRInteractions = async (octokitClient, context) => {
     const existingCommentsData = await octokitClient.rest.issues.listComments({
