@@ -2,6 +2,7 @@ import * as core from '@actions/core';
 import type { GitHub } from '@actions/github/lib/utils.js';
 import type { Config, CustomContext, FileChange } from './types.js';
 import { FileStatus } from './types.js';
+import { parseQueryParams } from './utils.js';
 
 const getFileChanges = async (
   octokitClient: InstanceType<typeof GitHub>,
@@ -37,13 +38,6 @@ const getFileChanges = async (
   }
   return JSON.stringify(fileChanges);
 };
-
-function parseQueryParams(url: string | undefined): Record<string, string> {
-  const queryString = url?.includes('?') ? url.split('?')[1] : '';
-  const searchParams = new URLSearchParams(queryString);
-
-  return Object.fromEntries(searchParams.entries());
-}
 
 const getFile = async (
   octokitClient: InstanceType<typeof GitHub>,

@@ -34314,6 +34314,11 @@ const getGithubContext = () => {
 function isAllowedFileType(filename) {
     return SUPPORTED_CUSTOM_INSTRUCTIONS_FILE_TYPES.some((ext) => filename.toLowerCase().endsWith(ext));
 }
+function parseQueryParams(url) {
+    const queryString = url?.includes('?') ? url.split('?')[1] : '';
+    const searchParams = new URLSearchParams(queryString);
+    return Object.fromEntries(searchParams.entries());
+}
 
 
 ;// CONCATENATED MODULE: ./node_modules/@google/generative-ai/dist/index.mjs
@@ -36075,6 +36080,7 @@ var FileStatus;
 ;// CONCATENATED MODULE: ./src/data.ts
 
 
+
 const getFileChanges = async (octokitClient, context, config) => {
     const files = await octokitClient.rest.pulls.listFiles({
         repo: context.repo,
@@ -36100,11 +36106,6 @@ const getFileChanges = async (octokitClient, context, config) => {
     }
     return JSON.stringify(fileChanges);
 };
-function parseQueryParams(url) {
-    const queryString = url?.includes('?') ? url.split('?')[1] : '';
-    const searchParams = new URLSearchParams(queryString);
-    return Object.fromEntries(searchParams.entries());
-}
 const getFile = async (octokitClient, context, path, ref) => {
     const response = await octokitClient.rest.repos.getContent({
         owner: context.repoOwner,
@@ -36163,11 +36164,11 @@ schema) => {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getGenerativeContentRequest = (prompt, schema) => {
     return {
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: {
             responseMimeType: 'application/json',
             responseSchema: schema,
         },
+        systemInstruction: prompt,
     };
 };
 

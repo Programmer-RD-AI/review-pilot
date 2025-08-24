@@ -42,4 +42,11 @@ function isAllowedFileType(filename: string): boolean {
   );
 }
 
-export { getGithubContext, fetchFile, populatePromptTemplate, isAllowedFileType };
+function parseQueryParams(url: string | undefined): Record<string, string> {
+  const queryString = url?.includes('?') ? url.split('?')[1] : '';
+  const searchParams = new URLSearchParams(queryString);
+
+  return Object.fromEntries(searchParams.entries());
+}
+
+export { parseQueryParams, getGithubContext, fetchFile, populatePromptTemplate, isAllowedFileType };

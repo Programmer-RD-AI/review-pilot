@@ -3,4 +3,5 @@ declare const populatePromptTemplate: (prompt: string, context: Record<string, s
 declare const fetchFile: (url: string) => Promise<string>;
 declare const getGithubContext: () => CustomContext;
 declare function isAllowedFileType(filename: string): boolean;
-export { getGithubContext, fetchFile, populatePromptTemplate, isAllowedFileType };
+declare function parseQueryParams(url: string | undefined): Record<string, string>;
+export { parseQueryParams, getGithubContext, fetchFile, populatePromptTemplate, isAllowedFileType };
