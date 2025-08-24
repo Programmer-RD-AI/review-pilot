@@ -23,12 +23,12 @@ const ReviewCommentsSchema = {
             type: SchemaType.STRING,
             description: 'File path related to the comment',
           },
-          position: {
+          line: {
             type: SchemaType.NUMBER,
-            description: 'Line number in the diff where the comment applies',
+            description: 'Line number in the file where the comment applies',
           },
         },
-        required: ['body', 'path', 'position'],
+        required: ['body', 'path', 'line'],
       },
     },
   },

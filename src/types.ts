@@ -1,7 +1,7 @@
 type ReviewComment = {
   body: string;
   path: string;
-  position: number;
+  line: number;
 };
 type ReviewComments = {
   reviewComments: Array<ReviewComment>;

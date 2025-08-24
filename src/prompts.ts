@@ -20,13 +20,13 @@ You MUST respond with a structured JSON object containing exactly these fields:
 2. "reviewComments": Array of detailed review items. Each comment object must contain:
    - "body": Your detailed technical feedback, suggestions, or concerns for this specific issue
    - "path": The exact file path where the issue exists (example: "src/utils/auth.ts")
-   - "position": The line index within the diff hunk where the comment applies. The first line of the diff hunk (after the diff header) is position 1.
+   - "line": The line number in the file where the comment applies.
 
 CRITICAL DIFF INTERPRETATION RULES:
 - Lines prefixed with "+" are NEW code (RIGHT side) - these are your primary targets for comments
 - Lines prefixed with "-" are DELETED code (LEFT side) - rarely comment directly on these
 - Diff headers show line ranges and look like this: \`@@ -old_start,old_count +new_start,new_count @@\`
-- The "position" field is the line's index within the diff. The first line after a diff header is position 1. The position should be calculated relative to the start of the diff hunk.
+- The "line" field is the line number in the file. The position should be calculated relative to the start of the diff hunk.
 
 COMPREHENSIVE REVIEW CRITERIA:
 

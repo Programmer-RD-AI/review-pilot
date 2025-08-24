@@ -39,7 +39,7 @@ async function run(): Promise<void> {
     const geminiClient = gemini.getClient(apiKey);
     const geminiModel = gemini.getModel(model, geminiClient);
     const rawResponse = await gemini.generateResponse(geminiModel, prompt, ReviewCommentsSchema);
-    console.log(rawResponse);
+    core.debug(rawResponse);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const response: ReviewComments = JSON.parse(rawResponse);
     await octokit.rest.pulls.createReview({
@@ -49,7 +49,10 @@ async function run(): Promise<void> {
       commit_id: commitId,
       body: response.summary,
       event: 'COMMENT',
-      comments: response.reviewComments,
+      comments: response.reviewComments.map((comment) => ({
+        ...comment,
+        position: comment.line,
+      })),
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: unknown) {
