@@ -34373,7 +34373,7 @@ Your review could prevent production outages, security breaches, or months of te
 `;
     const context = {
         custom_instructions: customInstructions,
-        filesChanged: filesChanged,
+        files_changed: filesChanged,
     };
     return new Template(basePrompt).render(context).trim();
 };
