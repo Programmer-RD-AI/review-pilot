@@ -35901,8 +35901,8 @@ const ReviewCommentsSchema = {
                         description: 'Exact file path from the provided diff data where the issue exists. Must match a file that has patches in the provided data.',
                     },
                     position: {
-                        type: SchemaType.NUMBER,
-                        description: "Line position within the specific file's patch where the comment applies. Count starts at 1 immediately after each @@ header line in that file's patch. This must reference a line that actually exists in the provided patch data.",
+                        type: SchemaType.INTEGER,
+                        description: "Line position within the specific file's patch where the comment applies. Count starts at 1 immediately after each @@ header line in that file's patch. This must be a whole number (integer) referencing a line that actually exists in the provided patch data.",
                     },
                 },
                 required: ['body', 'path', 'position'],
