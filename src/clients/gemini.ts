@@ -53,7 +53,7 @@ const getGenerativeContentRequest = (prompt: string, schema: Record<string, any>
   return {
     contents: [
       {
-        role: 'user',
+        role: 'system',
         parts: [{ text: prompt }],
       },
     ],

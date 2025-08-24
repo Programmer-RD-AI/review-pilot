@@ -19,7 +19,7 @@ const ReviewCommentsSchema = {
     comments: {
       type: SchemaType.ARRAY,
       description:
-        'Array of specific issues found in the diff patches. Only include comments for problems you can actually see and verify in the provided patch data. Focus on new code (+ lines) and problematic patterns visible in the changes.',
+        'Array of specific issues found ONLY in NEW/CHANGED code. MANDATORY: Before adding any comment, verify the issue does not already exist in the full file context. Only comment on problems introduced by the patch changes.',
       items: {
         type: SchemaType.OBJECT,
         description:
@@ -28,7 +28,7 @@ const ReviewCommentsSchema = {
           body: {
             type: SchemaType.STRING,
             description:
-              'Explanation of the issue found in the patch. Be specific about what you can see that is problematic. Only include ```suggestion code blocks if you have enough context from the patch to provide a complete, correct fix. Otherwise, focus on explaining the issue and its potential impact. Reference specific lines or patterns visible in the patch.',
+              'Explanation of the issue found in NEW/CHANGED code only. CRITICAL: You have both patch and full file context - do not comment on things that already exist in the complete file. Only comment on genuine problems introduced by the changes.',
           },
           path: {
             type: SchemaType.STRING,

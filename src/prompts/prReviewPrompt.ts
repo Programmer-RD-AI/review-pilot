@@ -35,8 +35,24 @@ Previous Discussion: {{ existing_comments | default("Clean slate - first review.
 Previous Reviews: {{ existing_reviews | default("No prior reviews.") }}
 Existing Inline Comments: {{ existing_review_comments | default("No prior inline feedback.") }}
 
-THE DIFF DATA (PATCHES):
+THE DIFF DATA (PATCHES + FULL FILE CONTEXT):
 {{ files_changed }}
+
+MANDATORY PRE-COMMENT CHECKLIST - READ THIS BEFORE EVERY COMMENT:
+Before writing ANY comment, you MUST:
+
+1. Identify the specific line/code you want to comment on in the PATCH
+2. Look at the FULL FILE CONTEXT (the "context" field) to see if that issue already exists elsewhere in the complete file
+3. If the issue already exists in the full file context, DO NOT COMMENT ON IT
+4. Only comment if you can verify the issue is genuinely introduced by the NEW/CHANGED lines in the patch
+
+EXAMPLES OF WHAT NOT TO COMMENT ON:
+- "FileStatus enum is missing X" when X exists in the full file context  
+- "Missing trigger event" when trigger exists in full file context
+- "Missing error handling" when error handling exists in full file context
+- "Missing type definition" when type exists in full file context
+
+ONLY COMMENT ON GENUINE ISSUES IN THE NEW CODE THAT YOU CAN VERIFY ARE ACTUALLY PROBLEMATIC.
 
 CRITICAL UNDERSTANDING - YOU'RE WORKING WITH DIFF PATCHES:
 
