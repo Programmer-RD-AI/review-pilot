@@ -1,5 +1,5 @@
 name: 'ReviewPilot Action'
-description: 'Comprehensive AI-powered PR reviewer with chain-of-thought analysis. Covers security, performance, maintainability, and correctness. Can approve PRs unlike GitHub Copilot.'
+description: 'AI PR reviewer that beats GitHub Copilot. Chain-of-thought analysis + approval capability. Security, performance, quality.'
 author: 'Programmer-RD-AI'
 branding:
   icon: 'eye'
