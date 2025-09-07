@@ -1,7 +1,7 @@
 /**
- * Advanced AI Code Review System - Exceeds GitHub Copilot Capabilities
- * Uses advanced reasoning, systematic analysis, and bulletproof position calculation
- * @returns Jinja2 template for comprehensive code review
+ * Next-Generation AI Code Review System - Optimized for Gemini Models
+ * Features deterministic position calculation and structured reasoning chains
+ * @returns Jinja2 template with failsafe mechanisms
  */
 declare const getPrReviewBasePrompt: () => string;
 export default getPrReviewBasePrompt;
