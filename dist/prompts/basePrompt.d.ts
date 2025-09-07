@@ -1,7 +1,7 @@
 /**
- * Returns the comprehensive AI code review prompt using chain-of-thought reasoning
- * Designed to match and exceed GitHub Copilot's review capabilities
- * @returns Jinja2 template string containing the complete review instructions
+ * Advanced AI Code Review System - Exceeds GitHub Copilot Capabilities
+ * Uses advanced reasoning, systematic analysis, and bulletproof position calculation
+ * @returns Jinja2 template for comprehensive code review
  */
 declare const getPrReviewBasePrompt: () => string;
 export default getPrReviewBasePrompt;
