@@ -14,7 +14,7 @@ type ReviewComments = {
     event: ReviewEventTypes;
     comments: Array<ReviewComment>;
 };
-type ReviewEventTypes = 'APPROVE' | 'COMMENT' | 'REQUEST_CHANGES';
+type ReviewEventTypes = 'COMMENT' | 'REQUEST_CHANGES';
 declare enum FileStatus {
     ADDED = "added",
     REMOVED = "removed",

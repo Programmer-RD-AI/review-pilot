@@ -1,5 +1,5 @@
 name: 'ReviewPilot Action'
-description: 'AI PR reviewer that beats GitHub Copilot. Chain-of-thought analysis + approval capability. Security, performance, quality.'
+description: 'AI PR reviewer that beats GitHub Copilot. Chain-of-thought analysis. Security, performance, quality insights.'
 author: 'Programmer-RD-AI'
 branding:
   icon: 'eye'

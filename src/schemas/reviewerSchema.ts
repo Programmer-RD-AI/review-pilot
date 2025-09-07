@@ -10,8 +10,8 @@ const ReviewCommentsSchema = {
     },
     event: {
       type: SchemaType.STRING,
-      description: 'APPROVE for clean code, REQUEST_CHANGES for critical issues, COMMENT for suggestions and minor issues.',
-      enum: ['APPROVE', 'COMMENT', 'REQUEST_CHANGES'],
+      description: 'REQUEST_CHANGES for critical issues, COMMENT for suggestions and clean code.',
+      enum: ['COMMENT', 'REQUEST_CHANGES'],
     },
     comments: {
       type: SchemaType.ARRAY,

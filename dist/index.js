@@ -35882,8 +35882,8 @@ const ReviewCommentsSchema = {
         },
         event: {
             type: SchemaType.STRING,
-            description: 'APPROVE for clean code, REQUEST_CHANGES for critical issues, COMMENT for suggestions and minor issues.',
-            enum: ['APPROVE', 'COMMENT', 'REQUEST_CHANGES'],
+            description: 'REQUEST_CHANGES for critical issues, COMMENT for suggestions and clean code.',
+            enum: ['COMMENT', 'REQUEST_CHANGES'],
         },
         comments: {
             type: SchemaType.ARRAY,
@@ -36075,7 +36075,11 @@ The {{ files_changed }} contains an array where each object has:
 - **diff**: The actual patch with @@ headers (analyze this for issues)
 - **context**: Full file content (for understanding only)
 
-**CRITICAL RULE**: Only comment on changes visible in the "diff" section. Use "context" for understanding but never comment on lines not in the patch.
+**CRITICAL RULES**: 
+1. Only comment on changes visible in the "diff" section with @@ headers
+2. Use "context" for understanding but NEVER comment on lines not in the patch
+3. Each comment must target a specific "+ " (added) line in the diff
+4. Verify the issue actually exists in the changed code, not just theoretically
 
 ===== THE FILES TO REVIEW =====
 {{ files_changed }}
@@ -36084,12 +36088,13 @@ The {{ files_changed }} contains an array where each object has:
 
 Now execute your chain-of-thought analysis:
 
-**REASONING PROCESS:**
-1. First, I'll examine the file structure and identify what changed
-2. Then systematically scan each dimension (security, correctness, performance, maintainability)
-3. For each issue found, I'll verify it exists in the patch (not just context)
-4. I'll calculate exact positions within each file's patch
-5. Finally, I'll determine the appropriate review decision
+**REASONING PROCESS - FOLLOW EXACTLY:**
+1. **Parse Data**: Examine each file's fileName, diff, and context separately
+2. **Systematic Scan**: For EACH file's diff section, check security → correctness → performance → maintainability
+3. **Verify in Patch**: For every issue, confirm it's visible in the "+ " lines of that file's diff
+4. **Calculate Position**: Count lines in that specific file's patch starting from 1 after @@ header
+5. **Quality Check**: Ensure comment path matches fileName and position is accurate
+6. **Final Decision**: REQUEST_CHANGES only for critical issues, COMMENT for everything else
 
 **POSITION CALCULATION RULES:**
 - Position = line number within the specific file's diff, starting from 1 after @@ header
@@ -36098,44 +36103,44 @@ Now execute your chain-of-thought analysis:
 - If unsure about position, skip the comment rather than guess
 
 **COMMENT QUALITY STANDARDS:**
-Each comment must include:
-- **Category**: [Security/Performance/Correctness/Maintainability/Best Practice]
-- **Issue**: Clear description of what's wrong
-- **Impact**: Why this matters (risk, consequences)
-- **Solution**: Specific actionable fix
+Each comment MUST include ALL of these:
+- **Category**: [Security/Performance/Correctness/Maintainability/Best Practice] 
+- **Issue**: Precise description of the problem in the changed code
+- **Impact**: Specific consequences (crashes, security breach, performance degradation)
+- **Solution**: Exact code fix or specific action to take
+- **Example**: "**Security**: SQL injection vulnerability. Raw user input in query can allow attackers to access/modify database. Use parameterized queries: \`db.query('SELECT * FROM users WHERE id = ?', [userId])\`"
 
 **SELF-CONSISTENCY CHECK:**
 Before submitting, verify:
 1. Every comment path matches an exact fileName from the data
 2. Every position points to a line that actually changed in that file's patch
 3. Every issue is genuinely visible in the diff, not inferred from context
-4. The review decision (APPROVE/COMMENT/REQUEST_CHANGES) matches the severity of issues found
+4. The review decision (COMMENT/REQUEST_CHANGES) matches the severity of issues found
 
 ===== REVIEW DECISION LOGIC =====
 
-**APPROVE**: Clean code with no issues or only very minor suggestions
-- No security vulnerabilities
-- No correctness issues  
-- No significant performance problems
-- Code is maintainable and follows good practices
-
-**COMMENT**: Issues found but not critical enough to block merge
+**COMMENT**: Clean code or non-critical issues
+- No security vulnerabilities or critical bugs
 - Minor performance improvements
 - Style/maintainability suggestions  
 - Best practice recommendations
 - Documentation suggestions
+- Code that's generally good with room for improvement
 
-**REQUEST_CHANGES**: Critical issues that must be fixed before merge
-- Security vulnerabilities
-- Logic errors or crash bugs
-- Data integrity risks
-- Critical performance issues
+**REQUEST_CHANGES**: Critical issues that WILL cause production problems
+- Security vulnerabilities (injection, auth bypass, secrets exposed)
+- Logic errors that cause crashes, data corruption, or wrong results
+- Resource leaks (memory, connections, files)
+- Performance issues that will degrade system under load
+- Missing error handling for operations that commonly fail
+
+**BE AGGRESSIVE**: If you find ANY of these critical issues, use REQUEST_CHANGES immediately.
 
 ===== OUTPUT FORMAT =====
 
 Respond with valid JSON containing:
 - "summary": Comprehensive assessment covering what you analyzed and found
-- "event": "APPROVE", "COMMENT", or "REQUEST_CHANGES" based on issue severity
+- "event": "COMMENT" for clean code or minor issues, "REQUEST_CHANGES" for critical problems
 - "comments": Array of issues with body, path, and position
 
 ===== FINAL VERIFICATION CHECKLIST =====
@@ -36148,9 +36153,16 @@ Before submitting, confirm:
 ✓ My review decision matches the severity of issues found
 ✓ Comments include category, issue, impact, and solution
 
-If any verification fails, it's better to return fewer comments or approve rather than submit incorrect feedback.
+**FINAL CRITICAL REMINDER:**
+- If you're unsure about a position number, DON'T comment on that line
+- If you can't see the issue in the diff patch, DON'T comment on it
+- Better to miss an issue than create a wrong/confusing comment
+- Focus on issues you can definitively identify in the changed code
 
-Begin your systematic analysis now.
+**EXECUTION COMMAND**: 
+Now systematically analyze each file using the 5-step process. Be thorough, be accurate, be helpful.
+
+BEGIN ANALYSIS.
 `;
 };
 /* harmony default export */ const basePrompt = (getPrReviewBasePrompt);
@@ -36393,13 +36405,10 @@ async function run() {
         const rawResponse = await geminiClient.generateResponse(geminiModel, prompt, ReviewCommentsSchema);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const response = JSON.parse(rawResponse);
-        // Create review for approvals, requests for changes, or when there are comments
-        if (response.comments.length > 0 || response.event === 'APPROVE' || response.event === 'REQUEST_CHANGES') {
+        // Create review when there are comments or issues found
+        if (response.comments.length > 0 || response.event === 'REQUEST_CHANGES') {
             await pullRequestReview(config.token, context.prNodeId, response.summary, response.event, response.comments);
-            if (response.event === 'APPROVE') {
-                core.info(`✅ Pull request approved: ${response.summary}`);
-            }
-            else if (response.event === 'REQUEST_CHANGES') {
+            if (response.event === 'REQUEST_CHANGES') {
                 core.info(`❌ Changes requested: ${response.comments.length} issues found`);
             }
             else {
@@ -36407,7 +36416,7 @@ async function run() {
             }
         }
         else {
-            core.info('No actionable feedback needed - skipping review creation');
+            core.info(`✅ Code looks clean: ${response.summary}`);
         }
     }
     catch (error) {

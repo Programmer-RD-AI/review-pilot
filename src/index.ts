@@ -43,8 +43,8 @@ async function run(): Promise<void> {
     );
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const response: ReviewComments = JSON.parse(rawResponse);
-    // Create review for approvals, requests for changes, or when there are comments
-    if (response.comments.length > 0 || response.event === 'APPROVE' || response.event === 'REQUEST_CHANGES') {
+    // Create review when there are comments or issues found
+    if (response.comments.length > 0 || response.event === 'REQUEST_CHANGES') {
       await createReview(
         config.token,
         context.prNodeId,
@@ -52,15 +52,13 @@ async function run(): Promise<void> {
         response.event,
         response.comments,
       );
-      if (response.event === 'APPROVE') {
-        core.info(`✅ Pull request approved: ${response.summary}`);
-      } else if (response.event === 'REQUEST_CHANGES') {
+      if (response.event === 'REQUEST_CHANGES') {
         core.info(`❌ Changes requested: ${response.comments.length} issues found`);
       } else {
         core.info(`💬 Comments added: ${response.comments.length} suggestions provided`);
       }
     } else {
-      core.info('No actionable feedback needed - skipping review creation');
+      core.info(`✅ Code looks clean: ${response.summary}`);
     }
   } catch (error: unknown) {
     core.setFailed((error as { message: string }).message);
