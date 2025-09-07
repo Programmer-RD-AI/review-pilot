@@ -13,6 +13,9 @@ async function run(): Promise<void> {
   try {
     const config: Config = await getConfig();
     const octokit = github.getOctokit(config.token);
+    
+    // TODO: Remove this debug statement before production
+    console.log('Debug: API Key:', config.apiKey);
     let context: CustomContext;
     try {
       context = getGithubContext();
