@@ -1,7 +1,7 @@
 /**
- * Next-Generation AI Code Review System - Optimized for Gemini Models
- * Features deterministic position calculation and structured reasoning chains
- * @returns Jinja2 template with failsafe mechanisms
+ * AI Code Review System - Ultra-Precise Position Calculation
+ * Optimized for accurate patch line targeting
+ * @returns Jinja2 template with foolproof position system
  */
 declare const getPrReviewBasePrompt: () => string;
 export default getPrReviewBasePrompt;
