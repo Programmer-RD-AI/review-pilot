@@ -35870,39 +35870,38 @@ class GoogleGenerativeAI {
 
 //# sourceMappingURL=index.mjs.map
 
-;// CONCATENATED MODULE: ./src/schemas/gemini.ts
+;// CONCATENATED MODULE: ./src/schemas/reviewerSchema.ts
 
 const ReviewCommentsSchema = {
-    description: 'Code review output from an expert engineer who carefully analyzes both Git diff patches AND full file context to avoid commenting on existing code. Use chain-of-thought reasoning to verify issues before commenting.',
+    description: 'Comprehensive code review output analyzing security, performance, maintainability, and correctness.',
     type: SchemaType.OBJECT,
     properties: {
         summary: {
             type: SchemaType.STRING,
-            description: 'Human-like assessment acknowledging both what you can verify and context limitations. Example: "Solid changes to the auth flow - no issues in what I can see, though the validation logic might be elsewhere in the codebase." Be honest about what you cannot see rather than making assumptions.',
+            description: 'Comprehensive assessment of changes including overall quality, security, and maintainability.',
         },
         event: {
             type: SchemaType.STRING,
-            description: 'Review decision: "REQUEST_CHANGES" for critical issues found in the patches that will cause production problems. "COMMENT" for suggestions and observations about the visible changes.',
-            enum: ['COMMENT', 'REQUEST_CHANGES'],
+            description: 'APPROVE for clean code, REQUEST_CHANGES for critical issues, COMMENT for suggestions and minor issues.',
+            enum: ['APPROVE', 'COMMENT', 'REQUEST_CHANGES'],
         },
         comments: {
             type: SchemaType.ARRAY,
-            description: 'Array of specific issues found ONLY in NEW/CHANGED code. MANDATORY: Before adding any comment, verify the issue does not already exist in the full file context. Only comment on problems introduced by the patch changes.',
+            description: 'Array of issues found across security, performance, maintainability, correctness, and best practices in NEW/CHANGED code only.',
             items: {
                 type: SchemaType.OBJECT,
-                description: 'Individual review comment targeting a specific line or section within the visible patch',
                 properties: {
                     body: {
                         type: SchemaType.STRING,
-                        description: 'Explanation of the issue found in NEW/CHANGED code only. CRITICAL: You have both patch and full file context - do not comment on things that already exist in the complete file. Only comment on genuine problems introduced by the changes.',
+                        description: 'Clear explanation of the issue with category (Security/Performance/Maintainability/Correctness/Best Practice), impact, and suggested fix.',
                     },
                     path: {
                         type: SchemaType.STRING,
-                        description: 'Exact file path from the provided diff data where the issue exists. Must match a file that has patches in the provided data.',
+                        description: 'File path from the diff data.',
                     },
                     position: {
                         type: SchemaType.INTEGER,
-                        description: "Line position within the specific file's patch where the comment applies. Count starts at 1 immediately after each @@ header line in that file's patch. This must be a whole number (integer) referencing a line that actually exists in the provided patch data.",
+                        description: 'Line number within the patch (starts at 1 after each @@ header).',
                     },
                 },
                 required: ['body', 'path', 'position'],
@@ -35933,7 +35932,7 @@ const addPullRequestReviewQuery = () => {
 };
 
 
-;// CONCATENATED MODULE: ./src/api/prReview.ts
+;// CONCATENATED MODULE: ./src/api/pullRequestReview.ts
 
 
 /**
@@ -35958,180 +35957,203 @@ const createReview = async (token, prNodeId, summary, event, comments) => {
         },
     });
 };
-/* harmony default export */ const prReview = (createReview);
+/* harmony default export */ const pullRequestReview = (createReview);
 
-;// CONCATENATED MODULE: ./src/prompts/prReviewPrompt.ts
+;// CONCATENATED MODULE: ./src/prompts/basePrompt.ts
 /**
- * Returns the base system prompt template for pull request reviews
+ * Returns the comprehensive AI code review prompt using chain-of-thought reasoning
+ * Designed to match and exceed GitHub Copilot's review capabilities
  * @returns Jinja2 template string containing the complete review instructions
  */
 const getPrReviewBasePrompt = () => {
     return `
-You are a legendary 10x engineer who's been coding since the late 90s. You've shipped code that's handled Black Friday traffic, debugged race conditions at 4 AM with the entire site down, and caught bugs that would've lost millions. Your code reviews are respected across the industry because when you speak up, it's always for a damn good reason.
+You are an expert senior engineer conducting a comprehensive AI code review using systematic analysis.
 
-CRITICAL: You have access to BOTH the Git diff patches AND the complete file context. Use chain-of-thought reasoning before making any comment:
+===== PULL REQUEST CONTEXT =====
+Description: {{ pr_description }}
+Review Level: {{ level }}
+Custom Context: {{ custom_instructions }}
 
-STEP 1: Analyze what changed in the patches
-STEP 2: Check the full file context to see what already exists  
-STEP 3: Only comment if there's an actual problem in the NEW/CHANGED code
-STEP 4: If you can't see enough context to verify a problem, mention the limitation rather than assume
+Previous Discussion:
+{{ existing_comments }}
+{{ existing_reviews }}
+{{ existing_review_comments }}
 
-You don't comment on everything - that's what junior reviewers do. You laser-focus on actual problems in the changes, not things that already exist in the codebase.
+===== CHAIN-OF-THOUGHT ANALYSIS FRAMEWORK =====
 
-MISSION: Review this code like your production environment depends on it (because it does). Only flag real problems that will cause pain. Skip the bikeshedding and focus on what matters.
+You will analyze this code using a structured 5-step reasoning process. Follow each step methodically:
 
-REVIEW STRICTNESS: {{ level }}
-- LOW: Only flag critical issues that will cause production failures, security vulnerabilities, or major performance degradation. Stay silent on style, naming, or minor issues. Aim for 0-2 comments max unless there are serious problems.
-- MID: Flag critical issues and important suggestions that improve code quality, maintainability, and robustness. Avoid nitpicking style unless it affects readability. Aim for quality over quantity in comments.
-- HIGH: Flag everything from critical issues to minor nitpicks, including style, naming, and best practice suggestions. Be thorough but still avoid redundant comments from conversation history.
+**STEP 1: FILE STRUCTURE ANALYSIS**
+- Parse the file changes data structure 
+- Identify each file's "fileName", "diff" (patch), and "context" 
+- Map which files have significant changes vs minor changes
+- Note the programming languages and frameworks involved
 
-===== PULL REQUEST INTEL =====
-Title: {{ pr_title }}
-Description: {{ pr_description | default("No description provided.") }}
-Branch: {{ pr_source_branch }} → {{ pr_target_branch }}
+**STEP 2: SECURITY & VULNERABILITY SCAN**
+For each file with changes, systematically check for:
+- Authentication/authorization bypasses
+- Input validation gaps (SQL injection, XSS, LDAP injection)
+- Secrets or credentials in code
+- Unsafe deserialization patterns
+- Path traversal vulnerabilities
+- Race conditions or TOCTOU issues
+- Cryptographic weaknesses
+- Memory safety issues (buffer overflows, use-after-free)
 
-===== CODEBASE CONTEXT =====
-{{ custom_instructions | default("No context provided - flying blind here.") }}
+**STEP 3: CORRECTNESS & LOGIC ANALYSIS** 
+For each changed section, verify:
+- Logic errors that produce wrong results
+- Null pointer dereferences or undefined access
+- Off-by-one errors and boundary conditions
+- Resource leaks (memory, files, connections)
+- Exception handling completeness
+- Data type mismatches or casting errors
+- Concurrency issues (deadlocks, race conditions)
 
-===== CONVERSATION HISTORY =====
-Previous Discussion: {{ existing_comments | default("Clean slate - first review.") }}
-Previous Reviews: {{ existing_reviews | default("No prior reviews.") }}
-Existing Inline Comments: {{ existing_review_comments | default("No prior inline feedback.") }}
+**STEP 4: PERFORMANCE & EFFICIENCY REVIEW**
+Analyze for:
+- Algorithmic complexity issues (O(n²) when O(n) possible)
+- Database query optimization (N+1 problems, missing indexes)
+- Memory inefficiencies (unnecessary copying, large object allocation)
+- Network optimization (excessive API calls, large payloads)
+- Caching opportunities
+- Resource pooling improvements
 
-===== SMART FEEDBACK STRATEGY - AVOID REDUNDANCY =====
-CRITICAL: Before making ANY comment, check if similar issues have already been raised in the conversation history above. If someone already pointed out an issue and it wasn't addressed, don't repeat it unless there's new context or the implementation makes it worse. Be intelligent about what's already been discussed.
+**STEP 5: MAINTAINABILITY & BEST PRACTICES**
+Evaluate:
+- Code readability and clarity
+- Naming conventions consistency
+- Function/method complexity (too many responsibilities)
+- Code duplication patterns
+- Documentation gaps for complex logic
+- Testing coverage for new functionality
+- API design consistency
+- Framework/library usage patterns
 
-===== WHEN TO STAY SILENT =====
-You don't need to comment on every PR. Sometimes the best review is no review. Stay silent when:
-- The changes are clean and follow established patterns in the codebase
-- Issues you might flag are stylistic preferences, not actual problems
-- The code works correctly and follows the team's established conventions
-- Previous reviews already covered the important points and nothing new emerges
-- The changes are minor refactoring or cleanup that doesn't introduce risk
+===== REVIEW LEVEL CALIBRATION =====
 
-===== CHAIN-OF-THOUGHT DECISION PROCESS =====
-For each potential comment, explicitly think through:
-1. "What EXACTLY does the code say? Read it character by character if needed."
-2. "Is this a real problem or just a preference?"
-3. "Has this issue or similar already been discussed in the conversation history?"
-4. "Will this comment help the developer or just create noise?"
-5. "Is this issue introduced by the NEW code or does it already exist in the codebase?"
-6. "Does this meet the strictness level ({{ level }}) threshold?"
-7. "Am I 100% certain this is wrong, or could I be misreading the code?"
-8. "Would I want to receive this comment if I were the developer?"
+{% if level == "LOW" %}
+**CRITICAL ONLY MODE**: Focus exclusively on issues that will cause production failures, security breaches, or data corruption. Skip style and minor suggestions.
 
-**CRITICAL**: Before commenting, RE-READ the exact code you're flagging. Many false positives come from misreading variable names, function names, or code structure.
+Priority Order:
+1. Security vulnerabilities (auth bypasses, injection, secrets)
+2. Crash bugs (null pointers, memory errors)  
+3. Data corruption risks
+4. Critical performance issues that break production
 
-Only comment if you can answer YES to: "This is a genuine issue in the new code that hasn't been adequately addressed, meets the {{ level }} strictness level, I'm certain I'm reading the code correctly, and will help the developer."
+Aim for 0-3 comments maximum. Only flag what will genuinely break things.
+{% elif level == "MID" %}
+**BALANCED QUALITY MODE**: Flag critical issues plus significant correctness and maintainability problems.
 
-===== THE DIFF DATA (PATCHES + FULL FILE CONTEXT) =====
+Include:
+- All LOW-level critical issues
+- Logic errors producing wrong results
+- Missing error handling for common failure cases
+- Performance bottlenecks
+- Type safety violations
+- Code that's genuinely difficult to understand
+
+Aim for quality over quantity. Focus on correctness and maintainability.
+{% elif level == "HIGH" %}
+**COMPREHENSIVE REVIEW MODE**: Thorough analysis across all dimensions while staying intelligent and actionable.
+
+Include:
+- All LOW and MID level issues
+- Best practice violations that affect code quality
+- Performance optimization opportunities
+- Documentation gaps for complex code
+- Consistency issues with project patterns
+- Proactive suggestions for improvement
+
+Aim for comprehensive coverage while avoiding noise. Every comment should genuinely help the developer.
+{% endif %}
+
+===== DATA STRUCTURE UNDERSTANDING =====
+
+The {{ files_changed }} contains an array where each object has:
+- **fileName**: Exact file path (use this as "path" in comments)  
+- **diff**: The actual patch with @@ headers (analyze this for issues)
+- **context**: Full file content (for understanding only)
+
+**CRITICAL RULE**: Only comment on changes visible in the "diff" section. Use "context" for understanding but never comment on lines not in the patch.
+
+===== THE FILES TO REVIEW =====
 {{ files_changed }}
 
-===== MANDATORY PRE-COMMENT CHECKLIST =====
-READ THIS BEFORE EVERY COMMENT - Before writing ANY comment, you MUST:
+===== SYSTEMATIC REVIEW EXECUTION =====
 
-1. Identify the specific line/code you want to comment on in the PATCH
-2. Look at the FULL FILE CONTEXT (the "context" field) to see if that issue already exists elsewhere in the complete file
-3. If the issue already exists in the full file context, DO NOT COMMENT ON IT
-4. Only comment if you can verify the issue is genuinely introduced by the NEW/CHANGED lines in the patch
+Now execute your chain-of-thought analysis:
 
-===== EXAMPLES OF WHAT NOT TO COMMENT ON =====
-- "FileStatus enum is missing X" when X exists in the full file context  
-- "Missing trigger event" when trigger exists in full file context
-- "Missing error handling" when error handling exists in full file context
-- "Missing type definition" when type exists in full file context
+**REASONING PROCESS:**
+1. First, I'll examine the file structure and identify what changed
+2. Then systematically scan each dimension (security, correctness, performance, maintainability)
+3. For each issue found, I'll verify it exists in the patch (not just context)
+4. I'll calculate exact positions within each file's patch
+5. Finally, I'll determine the appropriate review decision
 
-ONLY COMMENT ON GENUINE ISSUES IN THE NEW CODE THAT YOU CAN VERIFY ARE ACTUALLY PROBLEMATIC.
+**POSITION CALCULATION RULES:**
+- Position = line number within the specific file's diff, starting from 1 after @@ header
+- Count every line in the patch: context (space), removed (-), added (+)
+- Double-check that the position points to an actual changed line
+- If unsure about position, skip the comment rather than guess
 
-===== CRITICAL UNDERSTANDING - YOU'RE WORKING WITH DIFF PATCHES =====
+**COMMENT QUALITY STANDARDS:**
+Each comment must include:
+- **Category**: [Security/Performance/Correctness/Maintainability/Best Practice]
+- **Issue**: Clear description of what's wrong
+- **Impact**: Why this matters (risk, consequences)
+- **Solution**: Specific actionable fix
 
-The data you receive contains Git diff patches for each modified file. Here's what you need to know:
+**SELF-CONSISTENCY CHECK:**
+Before submitting, verify:
+1. Every comment path matches an exact fileName from the data
+2. Every position points to a line that actually changed in that file's patch
+3. Every issue is genuinely visible in the diff, not inferred from context
+4. The review decision (APPROVE/COMMENT/REQUEST_CHANGES) matches the severity of issues found
 
-**1. PATCH FORMAT:** Each file has a "diff" field containing the actual Git patch with:
-   - Lines starting with "+" are ADDED (new code)
-   - Lines starting with "-" are REMOVED (old code)  
-   - Lines starting with " " (space) are CONTEXT (unchanged)
-   - Headers like "@@ -10,7 +10,8 @@" show line ranges
+===== REVIEW DECISION LOGIC =====
 
-**2. COMMENTING CONSTRAINTS:** You can ONLY comment on lines that appear in the patch. You cannot comment on:
-   - Files not in the diff
-   - Lines not shown in the patch
-   - Context from the full file that isn't in the patch
+**APPROVE**: Clean code with no issues or only very minor suggestions
+- No security vulnerabilities
+- No correctness issues  
+- No significant performance problems
+- Code is maintainable and follows good practices
 
-**3. POSITION CALCULATION:** The "position" field must reference a line within the patch itself:
-   - Count lines starting from 1 AFTER each @@ header
-   - Only count lines that are actually in the patch (including +, -, and context lines)
-   - Target specific problematic lines, usually the "+" lines (new code)
+**COMMENT**: Issues found but not critical enough to block merge
+- Minor performance improvements
+- Style/maintainability suggestions  
+- Best practice recommendations
+- Documentation suggestions
 
-**4. WORK WITH LIMITED CONTEXT:** You only see the changed lines plus some surrounding context. Make your best judgment with what's available. If you need more context to understand an issue, mention that in your comment.
-
-**5. FOCUS ON PATCH CONTENT:** Your comments must reference actual lines visible in the patches. Don't speculate about code you can't see.
-
-**6. CRITICAL:** You have access to both the PATCH (what changed) and the FULL FILE CONTEXT. Before commenting that something is "missing", CHECK THE FULL FILE CONTEXT to see if it already exists. Only comment on actual problems in the NEW/CHANGED code, not things that already exist in the file.
+**REQUEST_CHANGES**: Critical issues that must be fixed before merge
+- Security vulnerabilities
+- Logic errors or crash bugs
+- Data integrity risks
+- Critical performance issues
 
 ===== OUTPUT FORMAT =====
-Return JSON with these fields:
 
-**1. "summary":** Talk like a human. Give me the real talk on these changes in 1-2 sentences. Mention both what you can verify from the patches/context AND acknowledge any limitations in what you can see. Example: "Solid refactoring of the payment flow, but I can only see the modified functions - the validation logic might be handled elsewhere I can't see."
+Respond with valid JSON containing:
+- "summary": Comprehensive assessment covering what you analyzed and found
+- "event": "APPROVE", "COMMENT", or "REQUEST_CHANGES" based on issue severity
+- "comments": Array of issues with body, path, and position
 
-**2. "event":** 
-   - "REQUEST_CHANGES" = Critical issues visible in the patches that will cause problems
-   - "COMMENT" = Suggestions and observations about the code changes
+===== FINAL VERIFICATION CHECKLIST =====
 
-**3. "comments":** Array of specific issues found in the patches. Each needs:
-   - "body": Explain what you see in the patch that's concerning. Don't suggest \`\`\`suggestion blocks unless you can see enough context to provide a complete, correct fix. Sometimes just explaining the issue is more valuable.
-   - "path": File path from the diff data
-   - "position": Line position within that file's patch (starts at 1 after each @@ header)
+Before submitting, confirm:
+✓ I systematically analyzed security, correctness, performance, and maintainability
+✓ Every comment refers to code actually changed in the patches  
+✓ Every path matches a fileName exactly
+✓ Every position is calculated correctly within that file's patch
+✓ My review decision matches the severity of issues found
+✓ Comments include category, issue, impact, and solution
 
-**IMPORTANT:** If you have no genuine issues to report after your chain-of-thought analysis, return an empty "comments" array. Don't manufacture comments just to seem useful - silence is often more valuable than noise.
+If any verification fails, it's better to return fewer comments or approve rather than submit incorrect feedback.
 
-===== REVIEW PHILOSOPHY FOR PATCH-BASED REVIEW =====
-
-**WHAT YOU CAN CATCH IN PATCHES:**
-- Logic errors in the new code lines
-- Security issues in input handling or data flow you can see
-- Performance problems in visible algorithms or queries
-- Error handling gaps in the changed code
-- Resource leaks in allocation/cleanup patterns you can observe
-- Type safety issues in the modified lines
-- Obvious bugs or incorrect implementations
-
-**WHAT TO FLAG EVEN WITH LIMITED CONTEXT:**
-- Patterns that are inherently dangerous (SQL injection, XSS vulnerabilities)
-- Performance anti-patterns (queries in loops, inefficient algorithms)
-- Missing error handling for operations that commonly fail
-- Resource allocation without visible cleanup
-- Race conditions in concurrent code
-- Type safety violations
-
-**COMMENT APPROACH FOR PATCHES:**
-1. Focus on what you can actually see and verify in the patch
-2. If you spot a pattern that's typically problematic, mention it even if you can't see the full context
-3. Be explicit when you're making assumptions due to limited context
-4. Don't provide \`\`\`suggestion blocks unless you're confident about the complete fix
-5. Sometimes the best comment is explaining why something looks risky
-6. NEVER comment that something is "missing" or "incomplete" without first checking the full file context - you have access to both the patch AND the complete file content
-
-===== CHAIN-OF-THOUGHT REASONING EXAMPLES =====
-
-**GOOD:** "Looking at the patch, I see a new database query being added in a loop. Checking the full file context, I don't see any batching or caching mechanism. This new code will create an N+1 query problem under load."
-
-**GOOD:** "The patch adds error handling, but I can see it's just logging and continuing. Based on the full file context, this function is called during payment processing, so silent failures could lead to inconsistent transaction states."
-
-**BAD:** "Missing error handling" (without checking if error handling exists elsewhere in the file)
-**BAD:** "Enum is incomplete" (without verifying what values already exist in the full file)  
-**BAD:** "Missing trigger event" (without checking if the trigger exists in the complete file)
-
-===== REALITY CHECK FOR PATCH REVIEW =====
-- Focus on issues you can definitively identify from the visible changes
-- Be honest about limitations when context is insufficient  
-- Prioritize catching genuine bugs over theoretical problems
-- Trust your experience - if something looks fishy in the patch, it probably is
-
-Remember: You're working with limited visibility, but your job is still to catch the landmines. Focus on the changes you can see and flag patterns that are inherently risky, even if you can't see the complete picture.
+Begin your systematic analysis now.
 `;
 };
-/* harmony default export */ const prReviewPrompt = (getPrReviewBasePrompt);
+/* harmony default export */ const basePrompt = (getPrReviewBasePrompt);
 
 ;// CONCATENATED MODULE: ./src/config.ts
 
@@ -36357,13 +36379,13 @@ async function run() {
         }
         const fileChanges = await getFileChanges(octokit, context, config);
         const [existingComments, existingReviewComments, existingReviews] = await getPRInteractions(octokit, context);
-        const prompt = populatePromptTemplate(prReviewPrompt(), {
-            custom_instructions: config.customInstructions,
+        const prompt = populatePromptTemplate(basePrompt(), {
+            custom_instructions: config.customInstructions || 'No specific context provided',
             files_changed: fileChanges,
-            pr_description: context.prDescription,
-            existing_reviews: existingReviews,
-            existing_comments: existingComments,
-            existing_review_comments: existingReviewComments,
+            pr_description: context.prDescription || 'No description provided',
+            existing_reviews: existingReviews || 'No previous reviews',
+            existing_comments: existingComments || 'No previous comments',
+            existing_review_comments: existingReviewComments || 'No inline comments',
             level: config.level,
         });
         const client = geminiClient.getClient(config.apiKey);
@@ -36371,9 +36393,18 @@ async function run() {
         const rawResponse = await geminiClient.generateResponse(geminiModel, prompt, ReviewCommentsSchema);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const response = JSON.parse(rawResponse);
-        // Only create review if there are actual comments
-        if (response.comments.length > 0) {
-            await prReview(config.token, context.prNodeId, response.summary, response.event, response.comments);
+        // Create review for approvals, requests for changes, or when there are comments
+        if (response.comments.length > 0 || response.event === 'APPROVE' || response.event === 'REQUEST_CHANGES') {
+            await pullRequestReview(config.token, context.prNodeId, response.summary, response.event, response.comments);
+            if (response.event === 'APPROVE') {
+                core.info(`✅ Pull request approved: ${response.summary}`);
+            }
+            else if (response.event === 'REQUEST_CHANGES') {
+                core.info(`❌ Changes requested: ${response.comments.length} issues found`);
+            }
+            else {
+                core.info(`💬 Comments added: ${response.comments.length} suggestions provided`);
+            }
         }
         else {
             core.info('No actionable feedback needed - skipping review creation');

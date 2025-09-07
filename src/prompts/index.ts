@@ -1,4 +1,4 @@
-import getPrReviewBasePrompt from './prReviewPrompt.js';
+import getPrReviewBasePrompt from './basePrompt.js';
 
 export const basePrompts = {
   getPrReviewBasePrompt,
