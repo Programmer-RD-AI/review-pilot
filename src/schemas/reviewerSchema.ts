@@ -1,27 +1,27 @@
 import { SchemaType } from '@google/generative-ai';
 
 const ReviewCommentsSchema = {
-  description: 'Code review output focusing on bugs, security issues, and serious problems in new/changed code only.',
+  description: 'Comprehensive code review output analyzing security, performance, maintainability, and correctness.',
   type: SchemaType.OBJECT,
   properties: {
     summary: {
       type: SchemaType.STRING,
-      description: 'Brief assessment of the changes in 1-2 sentences. Be direct and honest about what you found.',
+      description: 'Comprehensive assessment of changes including overall quality, security, and maintainability.',
     },
     event: {
       type: SchemaType.STRING,
-      description: 'Either "REQUEST_CHANGES" for critical issues or "COMMENT" for suggestions.',
-      enum: ['COMMENT', 'REQUEST_CHANGES'],
+      description: 'APPROVE for clean code, REQUEST_CHANGES for critical issues, COMMENT for suggestions and minor issues.',
+      enum: ['APPROVE', 'COMMENT', 'REQUEST_CHANGES'],
     },
     comments: {
       type: SchemaType.ARRAY,
-      description: 'Array of specific issues found in NEW/CHANGED code only. Check full file context first.',
+      description: 'Array of issues found across security, performance, maintainability, correctness, and best practices in NEW/CHANGED code only.',
       items: {
         type: SchemaType.OBJECT,
         properties: {
           body: {
             type: SchemaType.STRING,
-            description: 'Clear explanation of the specific problem and why it matters.',
+            description: 'Clear explanation of the issue with category (Security/Performance/Maintainability/Correctness/Best Practice), impact, and suggested fix.',
           },
           path: {
             type: SchemaType.STRING,

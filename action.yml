@@ -1,5 +1,5 @@
 name: 'ReviewPilot Action'
-description: 'A lightweight, AI-powered PR reviewer, think Copilots insights, but leaner and sharper.'
+description: 'Comprehensive AI-powered PR reviewer with chain-of-thought analysis. Covers security, performance, maintainability, and correctness. Can approve PRs unlike GitHub Copilot.'
 author: 'Programmer-RD-AI'
 branding:
   icon: 'eye'
@@ -19,9 +19,9 @@ inputs:
     description: 'Optional custom instructions to fine-tune the review process. You can provide a string or the path to a .txt file containing specific guidelines or requirements. If a .txt file is provided, its contents will be used to guide the AI reviewer.'
     required: false
   level:
-    description: 'The strictness level of the review. LOW for critical issues, MID for balanced feedback, HIGH for nit-picking.'
+    description: 'Review depth: LOW (critical issues only), MID (balanced quality focus), HIGH (comprehensive analysis across security, performance, maintainability).'
     required: false
-    default: 'MID'
+    default: 'HIGH'
   maxChanges:
     description: 'The maximum number of changes in a file to be considered for review.'
     required: false

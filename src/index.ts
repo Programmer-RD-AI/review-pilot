@@ -25,7 +25,6 @@ async function run(): Promise<void> {
       octokit,
       context,
     );
-    core.info('test4');
     const prompt = populatePromptTemplate(getPrReviewBasePrompt(), {
       custom_instructions: config.customInstructions || 'No specific context provided',
       files_changed: fileChanges,
@@ -35,21 +34,17 @@ async function run(): Promise<void> {
       existing_review_comments: existingReviewComments || 'No inline comments',
       level: config.level,
     });
-    core.info('test3');
     const client = geminiClient.getClient(config.apiKey);
-    core.info('test1');
     const geminiModel = geminiClient.getModel(config.model, client);
-    core.info('test2');
     const rawResponse = await geminiClient.generateResponse(
       geminiModel,
       prompt,
       ReviewCommentsSchema,
     );
-    core.info(rawResponse);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const response: ReviewComments = JSON.parse(rawResponse);
-    // Only create review if there are actual comments
-    if (response.comments.length > 0) {
+    // Create review for approvals, requests for changes, or when there are comments
+    if (response.comments.length > 0 || response.event === 'APPROVE' || response.event === 'REQUEST_CHANGES') {
       await createReview(
         config.token,
         context.prNodeId,
@@ -57,6 +52,13 @@ async function run(): Promise<void> {
         response.event,
         response.comments,
       );
+      if (response.event === 'APPROVE') {
+        core.info(`✅ Pull request approved: ${response.summary}`);
+      } else if (response.event === 'REQUEST_CHANGES') {
+        core.info(`❌ Changes requested: ${response.comments.length} issues found`);
+      } else {
+        core.info(`💬 Comments added: ${response.comments.length} suggestions provided`);
+      }
     } else {
       core.info('No actionable feedback needed - skipping review creation');
     }
