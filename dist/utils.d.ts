@@ -1,5 +1,11 @@
 import type { CustomContext } from './types.js';
 /**
+ * Checks if a file should be excluded from code review based on path and name patterns
+ * @param filename - The filename to check
+ * @returns True if the file should be excluded, false otherwise
+ */
+declare const shouldExcludeFile: (filename: string) => boolean;
+/**
  * Populates a Jinja2 template string with provided context variables
  * @param prompt - The template string containing Jinja2 placeholders
  * @param context - Key-value pairs to substitute in the template
@@ -31,4 +37,4 @@ declare function isAllowedFileType(filename: string): boolean;
  * @returns Object containing key-value pairs of query parameters
  */
 declare function parseQueryParams(url: string | undefined): Record<string, string>;
-export { parseQueryParams, getGithubContext, fetchFile, populatePromptTemplate, isAllowedFileType };
+export { parseQueryParams, getGithubContext, fetchFile, populatePromptTemplate, isAllowedFileType, shouldExcludeFile };

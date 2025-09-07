@@ -34328,6 +34328,31 @@ const EXCLUDED_FILE_PATTERNS = [
 
 
 
+
+/**
+ * Checks if a file should be excluded from code review based on path and name patterns
+ * @param filename - The filename to check
+ * @returns True if the file should be excluded, false otherwise
+ */
+const shouldExcludeFile = (filename) => {
+    // Check if file is in an excluded directory
+    const normalizedPath = filename.toLowerCase();
+    for (const excludedDir of EXCLUDED_DIRECTORIES) {
+        const lowerExcludedDir = excludedDir.toLowerCase();
+        if (normalizedPath.startsWith(lowerExcludedDir + '/') ||
+            normalizedPath.includes('/' + lowerExcludedDir + '/')) {
+            return true;
+        }
+    }
+    // Check if file matches excluded patterns
+    for (const pattern of EXCLUDED_FILE_PATTERNS) {
+        const lowerPattern = pattern.toLowerCase();
+        if (normalizedPath.endsWith(lowerPattern)) {
+            return true;
+        }
+    }
+    return false;
+};
 /**
  * Populates a Jinja2 template string with provided context variables
  * @param prompt - The template string containing Jinja2 placeholders
@@ -36331,7 +36356,6 @@ var FileStatus;
 
 
 
-
 /**
  * Retrieves and processes file changes from a pull request
  * @param octokitClient - Authenticated GitHub API client
@@ -36339,30 +36363,6 @@ var FileStatus;
  * @param config - Configuration object containing review settings
  * @returns Promise resolving to JSON string of file changes
  */
-/**
- * Checks if a file should be excluded from code review based on path and name patterns
- * @param filename - The filename to check
- * @returns True if the file should be excluded, false otherwise
- */
-const shouldExcludeFile = (filename) => {
-    // Check if file is in an excluded directory
-    const normalizedPath = filename.toLowerCase();
-    for (const excludedDir of EXCLUDED_DIRECTORIES) {
-        const lowerExcludedDir = excludedDir.toLowerCase();
-        if (normalizedPath.startsWith(lowerExcludedDir + '/') ||
-            normalizedPath.includes('/' + lowerExcludedDir + '/')) {
-            return true;
-        }
-    }
-    // Check if file matches excluded patterns
-    for (const pattern of EXCLUDED_FILE_PATTERNS) {
-        const lowerPattern = pattern.toLowerCase();
-        if (normalizedPath.endsWith(lowerPattern)) {
-            return true;
-        }
-    }
-    return false;
-};
 const getFileChanges = async (octokitClient, context, config) => {
     const files = await octokitClient.rest.pulls.listFiles({
         repo: context.repo,

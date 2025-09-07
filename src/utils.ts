@@ -2,6 +2,36 @@ import * as github from '@actions/github';
 import { Template } from '@huggingface/jinja';
 import { SUPPORTED_CUSTOM_INSTRUCTIONS_FILE_TYPES } from './constants.js';
 import type { CustomContext } from './types.js';
+import { EXCLUDED_DIRECTORIES, EXCLUDED_FILE_PATTERNS } from './constants.js';
+
+/**
+ * Checks if a file should be excluded from code review based on path and name patterns
+ * @param filename - The filename to check
+ * @returns True if the file should be excluded, false otherwise
+ */
+const shouldExcludeFile = (filename: string): boolean => {
+  // Check if file is in an excluded directory
+  const normalizedPath = filename.toLowerCase();
+  for (const excludedDir of EXCLUDED_DIRECTORIES) {
+    const lowerExcludedDir = excludedDir.toLowerCase();
+    if (
+      normalizedPath.startsWith(lowerExcludedDir + '/') ||
+      normalizedPath.includes('/' + lowerExcludedDir + '/')
+    ) {
+      return true;
+    }
+  }
+
+  // Check if file matches excluded patterns
+  for (const pattern of EXCLUDED_FILE_PATTERNS) {
+    const lowerPattern = pattern.toLowerCase();
+    if (normalizedPath.endsWith(lowerPattern)) {
+      return true;
+    }
+  }
+
+  return false;
+};
 
 /**
  * Populates a Jinja2 template string with provided context variables
@@ -76,4 +106,4 @@ function parseQueryParams(url: string | undefined): Record<string, string> {
   return Object.fromEntries(searchParams.entries());
 }
 
-export { parseQueryParams, getGithubContext, fetchFile, populatePromptTemplate, isAllowedFileType };
+export { parseQueryParams, getGithubContext, fetchFile, populatePromptTemplate, isAllowedFileType, shouldExcludeFile };
