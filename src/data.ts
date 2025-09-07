@@ -2,6 +2,8 @@ import type { GitHub } from '@actions/github/lib/utils.js';
 import type { Config, CustomContext, FileChange } from './types.js';
 import { FileStatus } from './types.js';
 import { parseQueryParams } from './utils.js';
+import { EXCLUDED_DIRECTORIES, EXCLUDED_FILE_PATTERNS } from './constants.js';
+import * as core from '@actions/core';
 
 /**
  * Retrieves and processes file changes from a pull request
@@ -10,6 +12,33 @@ import { parseQueryParams } from './utils.js';
  * @param config - Configuration object containing review settings
  * @returns Promise resolving to JSON string of file changes
  */
+/**
+ * Checks if a file should be excluded from code review based on path and name patterns
+ * @param filename - The filename to check
+ * @returns True if the file should be excluded, false otherwise
+ */
+const shouldExcludeFile = (filename: string): boolean => {
+  // Check if file is in an excluded directory
+  const normalizedPath = filename.toLowerCase();
+  for (const excludedDir of EXCLUDED_DIRECTORIES) {
+    const lowerExcludedDir = excludedDir.toLowerCase();
+    if (normalizedPath.startsWith(lowerExcludedDir + '/') || 
+        normalizedPath.includes('/' + lowerExcludedDir + '/')) {
+      return true;
+    }
+  }
+  
+  // Check if file matches excluded patterns
+  for (const pattern of EXCLUDED_FILE_PATTERNS) {
+    const lowerPattern = pattern.toLowerCase();
+    if (normalizedPath.endsWith(lowerPattern)) {
+      return true;
+    }
+  }
+  
+  return false;
+};
+
 const getFileChanges = async (
   octokitClient: InstanceType<typeof GitHub>,
   context: CustomContext,
@@ -22,7 +51,14 @@ const getFileChanges = async (
   });
   const fileChanges: FileChange[] = Array<FileChange>();
   for (const file of files.data) {
+    // Skip files that exceed the change limit
     if (file.changes > config.maxChanges) {
+      continue;
+    }
+    
+    // Skip build/generated files
+    if (shouldExcludeFile(file.filename)) {
+      core.info(`Skipping generated/build file: ${file.filename}`);
       continue;
     }
     const fileChange: FileChange = {

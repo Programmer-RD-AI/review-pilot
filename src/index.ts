@@ -13,6 +13,7 @@ async function run(): Promise<void> {
   try {
     const config: Config = await getConfig();
     const octokit = github.getOctokit(config.token);
+    
     let context: CustomContext;
     try {
       context = getGithubContext();
