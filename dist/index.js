@@ -34280,6 +34280,48 @@ const SUPPORTED_CUSTOM_INSTRUCTIONS_FILE_TYPES = [
     '.cpp',
     '.log',
 ];
+// Directories and file patterns to exclude from code review
+const EXCLUDED_DIRECTORIES = [
+    'dist',
+    'build',
+    'out',
+    'target',
+    'bin',
+    'node_modules',
+    '.next',
+    '.nuxt',
+    '__pycache__',
+    'vendor',
+    'generated',
+    'coverage',
+    '.nyc_output',
+    'public/build',
+    'static/build',
+    'assets/build'
+];
+const EXCLUDED_FILE_PATTERNS = [
+    '.min.js',
+    '.min.css',
+    '.bundle.js',
+    '.bundle.css',
+    '.compiled.js',
+    '.compiled.css',
+    '.chunk.js',
+    '.worker.js',
+    '.webworker.js',
+    '.umd.js',
+    '.amd.js',
+    '.iife.js',
+    '.d.ts.map',
+    '.js.map',
+    '.css.map',
+    '.pyc',
+    '.pyo',
+    '.class',
+    '.jar',
+    '.war',
+    '.ear'
+];
 
 
 ;// CONCATENATED MODULE: ./src/utils.ts
@@ -35983,10 +36025,18 @@ Previous Discussion:
 
 You will analyze this code using a structured 5-step reasoning process. Follow each step methodically:
 
-**STEP 1: FILE STRUCTURE ANALYSIS**
+**STEP 1: FILE STRUCTURE ANALYSIS & SOURCE FILE FILTERING**
 - Parse the file changes data structure 
-- Identify each file's "fileName", "diff" (patch), and "context" 
-- Map which files have significant changes vs minor changes
+- **FILTER OUT ALL BUILD/GENERATED FILES IMMEDIATELY:**
+  - SKIP any build output directories or compiled artifacts
+  - SKIP minified, bundled, or generated files (*.min.*, *.bundle.*, etc.)
+  - IGNORE compiled JavaScript if corresponding TypeScript source exists
+  - SKIP dependency directories, cache folders, or vendor code
+- **ONLY ANALYZE SOURCE FILES:**
+  - Source: src/, lib/, app/, components/, pages/, utils/
+  - Config: *.config.*, *.yml, package.json, tsconfig.json
+  - Docs: README.md, docs/
+- Map which source files have significant changes vs minor changes
 - Note the programming languages and frameworks involved
 
 **STEP 2: SECURITY & VULNERABILITY SCAN**
@@ -36089,12 +36139,19 @@ The {{ files_changed }} contains an array where each object has:
 Now execute your chain-of-thought analysis:
 
 **REASONING PROCESS - FOLLOW EXACTLY:**
-1. **Parse Data**: Examine each file's fileName, diff, and context separately
-2. **Systematic Scan**: For EACH file's diff section, check security → correctness → performance → maintainability
-3. **Verify in Patch**: For every issue, confirm it's visible in the "+ " lines of that file's diff
-4. **Calculate Position**: Count lines in that specific file's patch starting from 1 after @@ header
-5. **Quality Check**: Ensure comment path matches fileName and position is accurate
-6. **Final Decision**: REQUEST_CHANGES only for critical issues, COMMENT for everything else
+1. **Parse & Filter**: Examine each file's fileName - IMMEDIATELY SKIP dist/, build/, compiled files
+2. **Source Files Only**: ONLY analyze src/, lib/, config files - NEVER comment on generated code
+3. **Systematic Scan**: For EACH SOURCE file's diff section, check security → correctness → performance → maintainability  
+4. **Verify in Patch**: For every issue, confirm it's visible in the "+ " lines of that SOURCE file's diff
+5. **Calculate Position**: Count lines in that specific SOURCE file's patch starting from 1 after @@ header
+6. **Quality Check**: Ensure comment path matches SOURCE fileName and position is accurate
+7. **Final Decision**: REQUEST_CHANGES only for critical issues, COMMENT for everything else
+
+**CRITICAL FILE FILTERING RULES:**
+- If issue exists in BOTH source file AND build artifact → ONLY comment on the source file
+- If only build/generated files changed → Skip review entirely, these are auto-generated
+- Focus review energy on source code where developers can actually make changes
+- When in doubt, ask: "Would a developer edit this file directly?" If no, skip it
 
 **CRITICAL POSITION CALCULATION RULES:**
 - Position = line number within the SPECIFIC file's diff ONLY, starting from 1 after @@ header
@@ -36174,12 +36231,19 @@ Before submitting, confirm:
 ✓ Comments include category, issue, impact, and solution
 
 **FINAL CRITICAL SAFETY RULES:**
+- **NEVER COMMENT ON GENERATED/BUILD/COMPILED FILES** - Only comment on source code
+- If you see the same issue in source AND build files → ONLY comment on the source file  
+- Skip any files that look generated, compiled, bundled, or built by tools
 - If you're unsure about a position number, DON'T comment on that line
 - If you can't see the issue in the diff patch, DON'T comment on it  
 - If position calculation seems off, skip that comment entirely
-- Better to provide ZERO comments than ONE wrong position comment
+- Better to provide ZERO comments than ONE wrong comment on build artifacts
 - Wrong positions cause "thread position is invalid" API errors
-- Focus ONLY on issues you can definitively identify in "+ " lines with correct positions
+- Focus ONLY on SOURCE files where developers can actually make changes
+
+**GENERATED/BUILD FILE PATTERNS TO AVOID:**
+Skip files matching: dist/, build/, out/, target/, bin/, lib/ (if compiled), .next/, node_modules/, 
+*.min.*, *.bundle.*, *.compiled.*, vendor/, public/build/, generated/, __pycache__/, *.pyc
 
 **EXECUTION COMMAND**: 
 Now systematically analyze each file using the 5-step process. Be thorough, be accurate, be helpful.
@@ -36240,6 +36304,8 @@ var FileStatus;
 ;// CONCATENATED MODULE: ./src/data.ts
 
 
+
+
 /**
  * Retrieves and processes file changes from a pull request
  * @param octokitClient - Authenticated GitHub API client
@@ -36247,6 +36313,30 @@ var FileStatus;
  * @param config - Configuration object containing review settings
  * @returns Promise resolving to JSON string of file changes
  */
+/**
+ * Checks if a file should be excluded from code review based on path and name patterns
+ * @param filename - The filename to check
+ * @returns True if the file should be excluded, false otherwise
+ */
+const shouldExcludeFile = (filename) => {
+    // Check if file is in an excluded directory
+    const normalizedPath = filename.toLowerCase();
+    for (const excludedDir of EXCLUDED_DIRECTORIES) {
+        const lowerExcludedDir = excludedDir.toLowerCase();
+        if (normalizedPath.startsWith(lowerExcludedDir + '/') ||
+            normalizedPath.includes('/' + lowerExcludedDir + '/')) {
+            return true;
+        }
+    }
+    // Check if file matches excluded patterns
+    for (const pattern of EXCLUDED_FILE_PATTERNS) {
+        const lowerPattern = pattern.toLowerCase();
+        if (normalizedPath.endsWith(lowerPattern)) {
+            return true;
+        }
+    }
+    return false;
+};
 const getFileChanges = async (octokitClient, context, config) => {
     const files = await octokitClient.rest.pulls.listFiles({
         repo: context.repo,
@@ -36255,7 +36345,13 @@ const getFileChanges = async (octokitClient, context, config) => {
     });
     const fileChanges = Array();
     for (const file of files.data) {
+        // Skip files that exceed the change limit
         if (file.changes > config.maxChanges) {
+            continue;
+        }
+        // Skip build/generated files
+        if (shouldExcludeFile(file.filename)) {
+            core.info(`Skipping generated/build file: ${file.filename}`);
             continue;
         }
         const fileChange = {
@@ -36403,8 +36499,6 @@ async function run() {
     try {
         const config = await getConfig();
         const octokit = github.getOctokit(config.token);
-        // TODO: Remove this debug statement before production
-        console.log('Debug: API Key:', config.apiKey);
         let context;
         try {
             context = getGithubContext();

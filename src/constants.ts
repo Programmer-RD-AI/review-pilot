@@ -23,4 +23,49 @@ const SUPPORTED_CUSTOM_INSTRUCTIONS_FILE_TYPES: string[] = [
   '.cpp',
   '.log',
 ];
-export { SUPPORTED_CUSTOM_INSTRUCTIONS_FILE_TYPES };
+
+// Directories and file patterns to exclude from code review
+const EXCLUDED_DIRECTORIES = [
+  'dist',
+  'build',
+  'out',
+  'target',
+  'bin',
+  'node_modules',
+  '.next',
+  '.nuxt',
+  '__pycache__',
+  'vendor',
+  'generated',
+  'coverage',
+  '.nyc_output',
+  'public/build',
+  'static/build',
+  'assets/build'
+];
+
+const EXCLUDED_FILE_PATTERNS = [
+  '.min.js',
+  '.min.css',
+  '.bundle.js',
+  '.bundle.css',
+  '.compiled.js',
+  '.compiled.css',
+  '.chunk.js',
+  '.worker.js',
+  '.webworker.js',
+  '.umd.js',
+  '.amd.js',
+  '.iife.js',
+  '.d.ts.map',
+  '.js.map',
+  '.css.map',
+  '.pyc',
+  '.pyo',
+  '.class',
+  '.jar',
+  '.war',
+  '.ear'
+];
+
+export { SUPPORTED_CUSTOM_INSTRUCTIONS_FILE_TYPES, EXCLUDED_DIRECTORIES, EXCLUDED_FILE_PATTERNS };

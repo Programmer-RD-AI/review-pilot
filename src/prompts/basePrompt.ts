@@ -21,10 +21,18 @@ Previous Discussion:
 
 You will analyze this code using a structured 5-step reasoning process. Follow each step methodically:
 
-**STEP 1: FILE STRUCTURE ANALYSIS**
+**STEP 1: FILE STRUCTURE ANALYSIS & SOURCE FILE FILTERING**
 - Parse the file changes data structure 
-- Identify each file's "fileName", "diff" (patch), and "context" 
-- Map which files have significant changes vs minor changes
+- **FILTER OUT ALL BUILD/GENERATED FILES IMMEDIATELY:**
+  - SKIP any build output directories or compiled artifacts
+  - SKIP minified, bundled, or generated files (*.min.*, *.bundle.*, etc.)
+  - IGNORE compiled JavaScript if corresponding TypeScript source exists
+  - SKIP dependency directories, cache folders, or vendor code
+- **ONLY ANALYZE SOURCE FILES:**
+  - Source: src/, lib/, app/, components/, pages/, utils/
+  - Config: *.config.*, *.yml, package.json, tsconfig.json
+  - Docs: README.md, docs/
+- Map which source files have significant changes vs minor changes
 - Note the programming languages and frameworks involved
 
 **STEP 2: SECURITY & VULNERABILITY SCAN**
@@ -127,12 +135,19 @@ The {{ files_changed }} contains an array where each object has:
 Now execute your chain-of-thought analysis:
 
 **REASONING PROCESS - FOLLOW EXACTLY:**
-1. **Parse Data**: Examine each file's fileName, diff, and context separately
-2. **Systematic Scan**: For EACH file's diff section, check security → correctness → performance → maintainability
-3. **Verify in Patch**: For every issue, confirm it's visible in the "+ " lines of that file's diff
-4. **Calculate Position**: Count lines in that specific file's patch starting from 1 after @@ header
-5. **Quality Check**: Ensure comment path matches fileName and position is accurate
-6. **Final Decision**: REQUEST_CHANGES only for critical issues, COMMENT for everything else
+1. **Parse & Filter**: Examine each file's fileName - IMMEDIATELY SKIP dist/, build/, compiled files
+2. **Source Files Only**: ONLY analyze src/, lib/, config files - NEVER comment on generated code
+3. **Systematic Scan**: For EACH SOURCE file's diff section, check security → correctness → performance → maintainability  
+4. **Verify in Patch**: For every issue, confirm it's visible in the "+ " lines of that SOURCE file's diff
+5. **Calculate Position**: Count lines in that specific SOURCE file's patch starting from 1 after @@ header
+6. **Quality Check**: Ensure comment path matches SOURCE fileName and position is accurate
+7. **Final Decision**: REQUEST_CHANGES only for critical issues, COMMENT for everything else
+
+**CRITICAL FILE FILTERING RULES:**
+- If issue exists in BOTH source file AND build artifact → ONLY comment on the source file
+- If only build/generated files changed → Skip review entirely, these are auto-generated
+- Focus review energy on source code where developers can actually make changes
+- When in doubt, ask: "Would a developer edit this file directly?" If no, skip it
 
 **CRITICAL POSITION CALCULATION RULES:**
 - Position = line number within the SPECIFIC file's diff ONLY, starting from 1 after @@ header
@@ -212,12 +227,19 @@ Before submitting, confirm:
 ✓ Comments include category, issue, impact, and solution
 
 **FINAL CRITICAL SAFETY RULES:**
+- **NEVER COMMENT ON GENERATED/BUILD/COMPILED FILES** - Only comment on source code
+- If you see the same issue in source AND build files → ONLY comment on the source file  
+- Skip any files that look generated, compiled, bundled, or built by tools
 - If you're unsure about a position number, DON'T comment on that line
 - If you can't see the issue in the diff patch, DON'T comment on it  
 - If position calculation seems off, skip that comment entirely
-- Better to provide ZERO comments than ONE wrong position comment
+- Better to provide ZERO comments than ONE wrong comment on build artifacts
 - Wrong positions cause "thread position is invalid" API errors
-- Focus ONLY on issues you can definitively identify in "+ " lines with correct positions
+- Focus ONLY on SOURCE files where developers can actually make changes
+
+**GENERATED/BUILD FILE PATTERNS TO AVOID:**
+Skip files matching: dist/, build/, out/, target/, bin/, lib/ (if compiled), .next/, node_modules/, 
+*.min.*, *.bundle.*, *.compiled.*, vendor/, public/build/, generated/, __pycache__/, *.pyc
 
 **EXECUTION COMMAND**: 
 Now systematically analyze each file using the 5-step process. Be thorough, be accurate, be helpful.
